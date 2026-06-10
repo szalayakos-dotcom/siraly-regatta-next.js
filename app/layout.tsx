@@ -1,23 +1,22 @@
 import { Analytics } from '@vercel/analytics/next'
-import type { Metadata, Viewport } from 'next'
-import { Oswald, Barlow_Semi_Condensed } from 'next/font/google'
+import type { Metadata } from 'next'
+import { Playfair_Display, Barlow_Condensed } from 'next/font/google'
 import './globals.css'
 
-const oswald = Oswald({
-  variable: '--font-heading',
+const playfair = Playfair_Display({
+  variable: '--font-playfair',
+  subsets: ['latin'],
+  weight: ['700', '800', '900'],
+})
+const barlow = Barlow_Condensed({
+  variable: '--font-barlow',
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
 })
-const barlow = Barlow_Semi_Condensed({
-  variable: '--font-body',
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-})
 
 export const metadata: Metadata = {
-  title: 'SailRace — Regatta Command',
-  description:
-    'A vintage Mediterranean sailing simulator dashboard. Plot your race, read the wind, command the fleet.',
+  title: 'Sirály Regatta — Balatoni Vitorlás Szimulátor',
+  description: 'Balatoni vitorlás szimulátor. Szállj vízre és versenyezz a Balaton legszebb tájain.',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -38,20 +37,13 @@ export const metadata: Metadata = {
   },
 }
 
-export const viewport: Viewport = {
-  themeColor: '#1f3a4d',
-}
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${oswald.variable} ${barlow.variable} bg-background`}
-    >
+    <html lang="hu" className={`${playfair.variable} ${barlow.variable} bg-background`}>
       <body className="font-sans antialiased">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}

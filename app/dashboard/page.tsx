@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { Sailboat, ChevronLeft, Pause } from 'lucide-react'
 import { StatusBar } from '@/components/status-bar'
 import { WindDial } from '@/components/wind-dial'
 import { RaceChart } from '@/components/race-chart'
@@ -13,9 +14,25 @@ import { getPocketBase, RACE_ID } from '@/lib/pocketbase'
 import { HeelIndicator } from '@/components/heel-indicator'
 import { CheckpointOverlay } from '@/components/checkpoint-overlay'
 import { FinishOverlay } from '@/components/finish-overlay'
+import { Panel } from '@/components/panel'
+import { StartConsole } from '@/components/start-console'
+import { cn } from '@/lib/utils'
 import type { SailState } from '@/components/sail-trim'
 
 const TICK_INTERVAL = 10000 // 10 másodperc
+
+// 80-as évek vitorlás műszerfal — szekció felirat sárgaréz névtáblával
+function SectionLabel({ code, children }: { code: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 px-1">
+      <span className="brass-plate label-caps rounded-[3px] px-1.5 py-0.5 text-[9px] leading-none">
+        {code}
+      </span>
+      <span className="label-caps text-[10px] text-muted-foreground">{children}</span>
+      <span className="h-px flex-1 bg-border" />
+    </div>
+  )
+}
 
 export default function Page() {
   const [raceStatus, setRaceStatus] = useState('active')
@@ -241,28 +258,27 @@ export default function Page() {
     return () => clearInterval(interval)
   }, [])
 
+  const startReady = startState === 'ready' && !hasStarted
+
   return (
-    <div className="flex min-h-screen bg-background flex-col">
-      <div className="flex min-w-0 flex-1 flex-col w-full" style={{ position: 'relative' }}>
+    <div className="flex min-h-screen flex-col bg-[oklch(0.93_0.02_250)]">
+      <div className="relative flex min-w-0 flex-1 flex-col">
+
+        {/* Szünet overlay */}
         {raceStatus === 'paused' && (
-          <div style={{
-            position: 'fixed', inset: 0, zIndex: 200,
-            background: 'rgba(26,42,58,0.92)',
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-            gap: '16px',
-          }}>
-            <div style={{ textAlign: 'center', maxWidth: '480px', padding: '40px' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏸</div>
-              <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '36px', fontWeight: 900, color: '#f2e8c9', letterSpacing: '2px', marginBottom: '8px' }}>
-                FUTAM IDEIGLENESEN<br/>FELFÜGGESZTVE
+          <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-4 bg-[oklch(0.18_0.03_250/0.94)] px-6 backdrop-blur-sm">
+            <div className="max-w-md rounded-sm border border-[oklch(0.93_0.02_92/0.15)] bg-[oklch(0.93_0.02_92/0.05)] px-10 py-10 text-center">
+              <Pause className="mx-auto mb-4 size-12 text-[oklch(0.93_0.02_92)]" strokeWidth={1.5} />
+              <h2 className="font-heading text-3xl font-black uppercase leading-tight tracking-wide text-[oklch(0.93_0.02_92)] text-balance">
+                Futam ideiglenesen felfüggesztve
               </h2>
-              <p style={{ fontFamily: 'Barlow Condensed, sans-serif', fontSize: '12px', letterSpacing: '3px', color: 'rgba(242,232,201,0.5)', marginTop: '12px' }}>
-                HAMAROSAN FOLYTATJUK — LEHET TECHNIKAI HIBA VAN, VAGY CSAK SZÉLCSEND
+              <p className="label-caps mt-3 text-[11px] text-[oklch(0.93_0.02_92/0.5)]">
+                Hamarosan folytatjuk — lehet technikai hiba van, vagy csak szélcsend
               </p>
             </div>
           </div>
         )}
+
         {finishOverlay && (
           <FinishOverlay
             finishedAt={finishOverlay.finishedAt}
@@ -278,107 +294,95 @@ export default function Page() {
             onClose={() => setCpOverlay(null)}
           />
         )}
-        {/* Navigációs sáv */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '6px 16px', background: 'var(--muted)',
-          borderBottom: '1px solid var(--border)',
-        }}>
-          <a href="/kikoto" style={{
-            fontFamily: 'var(--font-heading)', fontSize: '11px', fontWeight: 700,
-            letterSpacing: '2px', color: 'var(--muted-foreground)',
-            textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px',
-          }}>
-            ← KIKÖTŐ
+
+        {/* Navigációs sáv — sárgaréz műszerfal fejléc */}
+        <header className="flex items-center justify-between gap-3 border-b border-[oklch(0.42_0.04_248)] bg-[linear-gradient(180deg,oklch(0.3_0.035_248),oklch(0.2_0.03_250))] px-4 py-2">
+          <a href="/kikoto" className="label-caps flex items-center gap-1.5 text-[11px] text-[oklch(0.82_0.03_92)] transition-colors hover:text-[oklch(0.95_0.02_92)]">
+            <ChevronLeft className="size-4" />
+            Kikötő
           </a>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {countdown && !hasStarted && (
-              <span style={{ fontFamily: 'var(--font-heading)', fontSize: '16px', fontWeight: 700, color: startState === 'ready' ? '#4a9e6a' : 'var(--muted-foreground)', letterSpacing: '2px' }}>
-                {countdown}
-              </span>
-            )}
-            <button
-              onClick={startState === 'ready' && !hasStarted ? handleStart : undefined}
-              disabled={startState !== 'ready' || hasStarted}
-              style={{
-                background: hasStarted ? 'var(--muted)' : startState === 'ready' ? '#4a9e6a' : 'rgba(74,158,106,0.15)',
-                color: hasStarted ? 'var(--muted-foreground)' : startState === 'ready' ? '#fff' : '#4a9e6a',
-                border: `2px solid ${hasStarted ? 'var(--border)' : '#4a9e6a'}`,
-                borderRadius: '4px', padding: '8px 32px',
-                fontFamily: 'var(--font-heading)', fontWeight: 900,
-                fontSize: '16px', letterSpacing: '3px',
-                cursor: startState === 'ready' && !hasStarted ? 'pointer' : 'default',
-                transition: 'all 0.2s',
-                boxShadow: startState === 'ready' && !hasStarted ? '0 0 16px rgba(74,158,106,0.4)' : 'none',
-              }}
-            >
-              {hasStarted ? '⛵ ELINDULTÁL' : '⛵ RAJT'}
-            </button>
+
+          <div className="flex items-center gap-2 font-heading text-sm font-bold tracking-[0.2em] text-[oklch(0.92_0.02_92)]">
+            <Sailboat className="size-4 text-[var(--gold)]" />
+            FEDÉLZETI MŰSZERFAL
           </div>
+
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-block size-2 rounded-full"
+              style={{
+                background: hasStarted ? 'oklch(0.7 0.18 145)' : startReady ? 'oklch(0.7 0.2 28)' : 'oklch(0.4 0.03 250)',
+                boxShadow: (hasStarted || startReady) ? '0 0 8px currentColor' : 'none',
+              }}
+              aria-hidden
+            />
+            <span className="label-caps text-[10px] text-[oklch(0.82_0.03_92)]">
+              {hasStarted ? 'Versenyben' : startReady ? 'Rajtra kész' : 'Készenlét'}
+            </span>
+          </div>
+        </header>
+
+        {/* Központi rajtvezérlő pult */}
+        <div className="border-b border-[oklch(0.42_0.04_248)] bg-[linear-gradient(180deg,oklch(0.22_0.03_250),oklch(0.16_0.025_250))] px-4 py-4">
+          <StartConsole
+            startState={startState}
+            countdown={countdown}
+            hasStarted={hasStarted}
+            onStart={handleStart}
+          />
         </div>
+
         <StatusBar />
         <WarningPanel warnings={warnings} />
-        <main style={{
-          flex: 1, overflow: 'auto', padding: '8px',
-          display: 'flex', flexDirection: 'column', gap: '8px',
-        }}>
 
-          {/* SOR 1: Térkép + Videó (4:3) */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', height: '380px', flexShrink: 0 }}>
-            <div style={{ height: '380px', overflow: 'hidden' }}>
-              <RaceChart />
-            </div>
-            {/* Videó: 4:3 arány → 280px magas → 373px széles */}
-            <div style={{
-              width: '507px', height: '380px', flexShrink: 0,
-              background: '#1a1a1a', border: '6px solid #333',
-              borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.4)',
-              position: 'relative', overflow: 'hidden',
-            }}>
-              {/* Retro TV CRT hatás */}
-              <div style={{
-                position: 'absolute', inset: 0,
-                background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px)',
-                pointerEvents: 'none', zIndex: 1,
-              }}/>
-              <span style={{ fontFamily: 'var(--font-heading)', fontSize: '11px', letterSpacing: '3px', color: 'rgba(255,255,255,0.3)', zIndex: 2 }}>VIDEO</span>
+        <main className="flex flex-1 flex-col gap-3 overflow-auto p-3">
+
+          {/* SOR 1: Térkép + Fedélzeti kamera */}
+          <div className="flex shrink-0 flex-col gap-1.5">
+            <SectionLabel code="NAV">Navigáció &amp; Fedélzeti kamera</SectionLabel>
+            <div className="grid h-[380px] gap-3 lg:grid-cols-[1fr_507px]">
+              <div className="h-[380px] overflow-hidden">
+                <RaceChart />
+              </div>
+              {/* Retró CRT monitor */}
+              <Panel code="CAM" title="Fedélzeti kép" bodyClassName="p-0" className="hidden w-[507px] lg:flex">
+                <div className="crt-scanlines relative flex h-full items-center justify-center overflow-hidden bg-[oklch(0.16_0.01_250)] shadow-[inset_0_0_30px_oklch(0_0_0/0.7)]">
+                  <span className="label-caps text-[11px] text-[oklch(0.7_0.02_92/0.35)]">Élő kép — várakozás</span>
+                  <span className="absolute bottom-2 right-3 font-mono text-[10px] tracking-widest text-[oklch(0.6_0.14_28/0.75)]">● REC</span>
+                </div>
+              </Panel>
             </div>
           </div>
 
-          {/* SOR 2: WindDial + Heel + SailTrim */}
-          <div style={{ display: 'grid', gridTemplateColumns: '200px 200px 1fr', gap: '8px', height: '320px', flexShrink: 0 }}>
-
-            {/* WindDial */}
-            <div style={{ height: '320px', overflow: 'hidden' }}>
-              <WindDial />
-            </div>
-
-            {/* Heel műszer — azonos magasság */}
-            <div style={{
-              height: '320px', background: 'var(--card)',
-              border: '1px solid var(--border)', borderRadius: '4px',
-              padding: '6px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <HeelIndicator heel={heel} />
-            </div>
-
-            {/* SailTrim */}
-            <div style={{ height: '320px', overflow: 'hidden' }}>
-              <SailTrim onWarningsChange={setWarnings} onTrimChange={handleTrimChange} />
+          {/* SOR 2: Szélmérő + Dőlés + Vitorla-trim */}
+          <div className="flex shrink-0 flex-col gap-1.5">
+            <SectionLabel code="TRIM">Szélmérő · Dőlésmérő · Vitorlaállítás</SectionLabel>
+            <div className="grid h-[460px] gap-3 lg:grid-cols-[210px_210px_1fr]">
+              <div className="h-[460px] overflow-hidden">
+                <WindDial />
+              </div>
+              <Panel code="HEEL" title="Dőlésmérő" bodyClassName="flex items-center justify-center p-3">
+                <HeelIndicator heel={heel} />
+              </Panel>
+              <div className="h-[460px] overflow-hidden">
+                <SailTrim onWarningsChange={setWarnings} onTrimChange={handleTrimChange} />
+              </div>
             </div>
           </div>
 
           {/* SOR 3: Versenyállás + Időjárás + Taktika */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', flex: 1, minHeight: '160px' }}>
-            <div style={{ overflow: 'hidden' }}>
-              <FleetStandings />
-            </div>
-            <div style={{ overflow: 'hidden' }}>
-              <ConditionsForecast />
-            </div>
-            <div style={{ overflow: 'hidden' }}>
-              <TacticalBrief />
+          <div className="flex flex-1 flex-col gap-1.5">
+            <SectionLabel code="INFO">Versenyállás · Előrejelzés · Taktika</SectionLabel>
+            <div className="grid min-h-[160px] flex-1 gap-3 lg:grid-cols-3">
+              <div className="overflow-hidden">
+                <FleetStandings />
+              </div>
+              <div className="overflow-hidden">
+                <ConditionsForecast />
+              </div>
+              <div className="overflow-hidden">
+                <TacticalBrief />
+              </div>
             </div>
           </div>
 

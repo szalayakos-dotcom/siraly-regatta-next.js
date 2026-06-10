@@ -2,7 +2,10 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { getPocketBase } from '@/lib/pocketbase'
-import { Plus, Trash2, Edit2, Save, X, MapPin, Flag, Anchor, Navigation } from 'lucide-react'
+import {
+  Plus, Trash2, Edit2, Save, X, MapPin, Flag, Anchor, Navigation,
+  ChevronUp, ChevronDown, CircleDot, Trophy, Diamond, Route,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Point {
@@ -21,11 +24,16 @@ interface Course {
   distance_km?: number
 }
 
-const POINT_TYPES = [
-  { value: 'start',      label: 'Rajt',       color: '#c42b1c', icon: '🏁' },
-  { value: 'checkpoint', label: 'Checkpoint',  color: '#2a6a7a', icon: '📍' },
-  { value: 'waypoint',   label: 'Waypoint',   color: '#8a7a5a', icon: '⬟' },
-  { value: 'finish',     label: 'Cél',        color: '#c8a030', icon: '🏆' },
+const POINT_TYPES: {
+  value: Point['type']
+  label: string
+  color: string
+  Icon: typeof Flag
+}[] = [
+  { value: 'start',      label: 'Rajt',       color: '#c42b1c', Icon: Flag },
+  { value: 'checkpoint', label: 'Checkpoint', color: '#2a6a7a', Icon: CircleDot },
+  { value: 'waypoint',   label: 'Waypoint',   color: '#8a7a5a', Icon: Diamond },
+  { value: 'finish',     label: 'Cél',        color: '#c8a030', Icon: Trophy },
 ]
 
 function calcDistance(points: Point[]): number {
@@ -137,7 +145,7 @@ export default function CoursesPage() {
         })
         const marker = L.marker([pt.lat, pt.lng], { icon })
           .addTo(map)
-          .bindTooltip(`${typeInfo.icon} ${pt.name}`, { permanent: false })
+          .bindTooltip(`${typeInfo.label} · ${pt.name}`, { permanent: false })
         markersRef.current.push(marker)
       })
 
@@ -207,8 +215,8 @@ export default function CoursesPage() {
   }
 
   async function saveCourse() {
-    if (!courseName.trim()) { flash('⚠ Adj nevet a pályának'); return }
-    if (points.length < 2) { flash('⚠ Legalább 2 pont kell'); return }
+    if (!courseName.trim()) { flash('Adj nevet a pályának'); return }
+    if (points.length < 2) { flash('Legalább 2 pont kell'); return }
     try {
       const pb = getPocketBase()
       const data = {
@@ -219,14 +227,14 @@ export default function CoursesPage() {
       }
       if (editing) {
         await pb.collection('courses').update(editing.id, data)
-        flash('✓ Pálya frissítve')
+        flash('Pálya frissítve')
       } else {
         await pb.collection('courses').create(data)
-        flash('✓ Pálya mentve')
+        flash('Pálya mentve')
       }
       closeEditor()
       load()
-    } catch (e) { flash('⚠ Hiba: ' + (e as any)?.message) }
+    } catch (e) { flash('Hiba: ' + (e as any)?.message) }
   }
 
   async function deleteCourse(id: string) {
@@ -234,73 +242,81 @@ export default function CoursesPage() {
     try {
       const pb = getPocketBase()
       await pb.collection('courses').delete(id)
-      flash('✓ Törölve')
+      flash('Törölve')
       load()
-    } catch (e) { flash('⚠ Hiba') }
+    } catch (e) { flash('Hiba') }
   }
 
+  // ---- SZERKESZTŐ NÉZET ----
   if (showEditor) return (
-    <div className="flex flex-col h-full">
-      {/* Szerkesztő fejléc */}
-      <div className="flex items-center gap-3 p-4 border-b border-border bg-card shrink-0">
-        <button onClick={closeEditor} className="rounded-sm border border-border p-1.5 text-muted-foreground hover:text-foreground">
-          <X className="size-4"/>
+    <div className="flex h-full flex-col bg-background">
+      {/* Szerkesztő fejléc — réz műszerléc */}
+      <div className="instrument-bezel relative flex shrink-0 items-center gap-3 px-4 py-3">
+        <span className="rivet left-2 top-2" />
+        <span className="rivet right-2 top-2" />
+        <span className="rivet bottom-2 left-2" />
+        <span className="rivet bottom-2 right-2" />
+        <button onClick={closeEditor}
+          className="rounded-sm border border-border/60 bg-background/40 p-1.5 text-muted-foreground transition-colors hover:text-foreground">
+          <X className="size-4" />
         </button>
         <input value={courseName} onChange={e => setCourseName(e.target.value)}
           placeholder="Pálya neve..."
-          className="flex-1 rounded-sm border border-border bg-background px-3 py-1.5 text-sm font-heading font-semibold outline-none focus:border-secondary"/>
-        <span className="label-caps text-[9px] text-muted-foreground">
+          className="flex-1 rounded-sm border border-border/60 bg-background/60 px-3 py-1.5 font-heading text-sm font-semibold text-foreground outline-none focus:border-secondary" />
+        <span className="label-caps hidden text-[9px] text-muted-foreground sm:inline">
           {points.length} pont · {calcDistance(points)} km
         </span>
-        {msg && <span className="label-caps text-[10px] text-secondary bg-secondary/10 px-2 py-1 rounded-sm">{msg}</span>}
+        {msg && <span className="brass-plate label-caps rounded-sm px-2 py-1 text-[10px]">{msg}</span>}
         <button onClick={saveCourse}
-          className="flex items-center gap-2 rounded-sm bg-secondary px-3 py-1.5 font-heading text-sm font-semibold text-secondary-foreground">
-          <Save className="size-4"/>Mentés
+          className="flex items-center gap-2 rounded-sm bg-secondary px-3 py-1.5 font-heading text-sm font-semibold text-secondary-foreground transition-colors hover:brightness-110">
+          <Save className="size-4" />Mentés
         </button>
       </div>
 
-      <div className="flex flex-1 min-h-0">
+      <div className="flex min-h-0 flex-1">
         {/* Bal panel */}
-        <div className="w-72 shrink-0 border-r border-border flex flex-col overflow-hidden">
+        <div className="flex w-72 shrink-0 flex-col overflow-hidden border-r border-border bg-card">
           {/* Pont típus választó */}
-          <div className="p-3 border-b border-border">
-            <p className="label-caps text-[9px] text-muted-foreground mb-2">Pont típusa (kattints a térképre)</p>
+          <div className="border-b border-border p-3">
+            <p className="label-caps mb-2 text-[9px] text-muted-foreground">Pont típusa (kattints a térképre)</p>
             <div className="grid grid-cols-2 gap-1.5">
-              {POINT_TYPES.map(({ value, label, icon }) => (
-                <button key={value} onClick={() => setAddType(value as Point['type'])}
+              {POINT_TYPES.map(({ value, label, Icon, color }) => (
+                <button key={value} onClick={() => setAddType(value)}
                   className={cn(
-                    'rounded-sm border px-2 py-1.5 font-heading text-[10px] font-semibold text-left transition-all',
+                    'flex items-center gap-1.5 rounded-sm border px-2 py-1.5 font-heading text-[10px] font-semibold transition-all',
                     addType === value
                       ? 'border-secondary bg-secondary/15 text-secondary'
                       : 'border-border text-muted-foreground hover:border-secondary/40'
                   )}>
-                  {icon} {label}
+                  <Icon className="size-3.5 shrink-0" style={{ color: addType === value ? undefined : color }} />
+                  {label}
                 </button>
               ))}
             </div>
           </div>
 
           {/* Pont lista */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+          <div className="flex-1 space-y-1.5 overflow-y-auto p-3">
             {points.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-4">Kattints a térképre pontok hozzáadásához</p>
+              <p className="py-4 text-center text-xs text-muted-foreground">Kattints a térképre pontok hozzáadásához</p>
             ) : points.map((pt, i) => {
               const typeInfo = POINT_TYPES.find(t => t.value === pt.type)!
+              const PtIcon = typeInfo.Icon
               return (
-                <div key={i} className="flex items-center gap-2 rounded-sm border border-border bg-card p-2">
-                  <span className="font-heading text-xs font-bold text-muted-foreground w-5 text-center">{i+1}</span>
-                  <span style={{ color: typeInfo.color }} className="text-sm">{typeInfo.icon}</span>
+                <div key={i} className="flex items-center gap-2 rounded-sm border border-border bg-background/50 p-2">
+                  <span className="w-5 text-center font-heading text-xs font-bold text-muted-foreground">{i+1}</span>
+                  <PtIcon className="size-3.5 shrink-0" style={{ color: typeInfo.color }} />
                   <input value={pt.name} onChange={e => setPoints(prev => prev.map((p,j) => j===i ? {...p, name: e.target.value} : p))}
-                    className="flex-1 min-w-0 text-xs bg-transparent outline-none text-foreground"/>
+                    className="min-w-0 flex-1 bg-transparent text-xs text-foreground outline-none" />
                   <div className="flex gap-0.5">
                     {i > 0 && (
-                      <button onClick={() => movePoint(i, -1)} className="text-muted-foreground hover:text-foreground text-xs px-1">↑</button>
+                      <button onClick={() => movePoint(i, -1)} className="px-0.5 text-muted-foreground hover:text-foreground"><ChevronUp className="size-3.5" /></button>
                     )}
                     {i < points.length-1 && (
-                      <button onClick={() => movePoint(i, 1)} className="text-muted-foreground hover:text-foreground text-xs px-1">↓</button>
+                      <button onClick={() => movePoint(i, 1)} className="px-0.5 text-muted-foreground hover:text-foreground"><ChevronDown className="size-3.5" /></button>
                     )}
-                    <button onClick={() => removePoint(i)} className="text-muted-foreground hover:text-destructive px-1">
-                      <X className="size-3"/>
+                    <button onClick={() => removePoint(i)} className="px-0.5 text-muted-foreground hover:text-destructive">
+                      <X className="size-3.5" />
                     </button>
                   </div>
                 </div>
@@ -309,31 +325,42 @@ export default function CoursesPage() {
           </div>
 
           {/* Leírás */}
-          <div className="p-3 border-t border-border">
+          <div className="border-t border-border p-3">
             <textarea value={courseDesc} onChange={e => setCourseDesc(e.target.value)}
               placeholder="Pálya leírása..." rows={2}
-              className="w-full text-xs rounded-sm border border-border bg-background px-2 py-1.5 outline-none focus:border-secondary resize-none"/>
+              className="w-full resize-none rounded-sm border border-border bg-background px-2 py-1.5 text-xs outline-none focus:border-secondary" />
           </div>
         </div>
 
         {/* Térkép */}
-        <div ref={mapRef} className="flex-1 min-h-0"/>
+        <div ref={mapRef} className="min-h-0 flex-1" />
       </div>
     </div>
   )
 
+  // ---- LISTA NÉZET ----
   return (
-    <div className="p-4 lg:p-6 space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <h1 className="font-heading text-xl font-bold text-foreground">Pályák</h1>
-          <p className="label-caps text-[9px] text-muted-foreground">{courses.length} pálya</p>
+    <div className="space-y-4 p-4 lg:p-6">
+      {/* Fejléc — réz műszerléc */}
+      <div className="instrument-bezel relative flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <span className="rivet left-2 top-2" />
+        <span className="rivet right-2 top-2" />
+        <span className="rivet bottom-2 left-2" />
+        <span className="rivet bottom-2 right-2" />
+        <div className="flex items-center gap-3">
+          <div className="flex size-9 items-center justify-center rounded-sm border border-border/50 bg-background/40 text-secondary">
+            <Route className="size-5" strokeWidth={1.75} />
+          </div>
+          <div>
+            <h1 className="font-heading text-lg font-bold text-foreground">Pályák</h1>
+            <p className="label-caps text-[9px] text-muted-foreground">COURSE-REG · {courses.length} pálya</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          {msg && <span className="label-caps text-[10px] text-secondary bg-secondary/10 px-2 py-1 rounded-sm">{msg}</span>}
+          {msg && <span className="brass-plate label-caps rounded-sm px-2 py-1 text-[10px]">{msg}</span>}
           <button onClick={startNew}
-            className="flex items-center gap-2 rounded-sm bg-foreground px-3 py-2 font-heading text-sm font-semibold text-background hover:bg-secondary transition-colors">
-            <Plus className="size-4"/>Új pálya
+            className="flex items-center gap-2 rounded-sm bg-secondary px-3 py-2 font-heading text-sm font-semibold text-secondary-foreground transition-colors hover:brightness-110">
+            <Plus className="size-4" />Új pálya
           </button>
         </div>
       </div>
@@ -342,7 +369,7 @@ export default function CoursesPage() {
         <p className="text-sm text-muted-foreground">Betöltés...</p>
       ) : courses.length === 0 ? (
         <div className="rounded-sm border border-border bg-card p-8 text-center">
-          <MapPin className="size-8 text-muted-foreground mx-auto mb-2"/>
+          <MapPin className="mx-auto mb-2 size-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">Még nincs pálya — hozz létre egyet!</p>
         </div>
       ) : (
@@ -353,24 +380,27 @@ export default function CoursesPage() {
             const cpCount = pts.filter(p => p.type === 'checkpoint').length
             const wpCount = pts.filter(p => p.type === 'waypoint').length
             return (
-              <div key={course.id} className="rounded-sm border border-border bg-card p-4 flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="font-heading text-sm font-semibold text-foreground mb-1">{course.name}</p>
+              <div key={course.id} className="flex items-center gap-3 rounded-sm border border-border bg-card p-4 transition-colors hover:border-secondary/40">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-sm border border-border/60 bg-background/50 text-secondary">
+                  <MapPin className="size-5" strokeWidth={1.75} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="mb-1 font-heading text-sm font-semibold text-foreground">{course.name}</p>
                   <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                    {course.distance_km && <span><Navigation className="size-3 inline mr-1"/>{course.distance_km} km</span>}
-                    {cpCount > 0 && <span><Flag className="size-3 inline mr-1"/>{cpCount} checkpoint</span>}
-                    {wpCount > 0 && <span><Anchor className="size-3 inline mr-1"/>{wpCount} waypoint</span>}
-                    {course.description && <span className="truncate max-w-xs">{course.description}</span>}
+                    {course.distance_km ? <span className="inline-flex items-center gap-1"><Navigation className="size-3" />{course.distance_km} km</span> : null}
+                    {cpCount > 0 && <span className="inline-flex items-center gap-1"><Flag className="size-3" />{cpCount} checkpoint</span>}
+                    {wpCount > 0 && <span className="inline-flex items-center gap-1"><Anchor className="size-3" />{wpCount} waypoint</span>}
+                    {course.description && <span className="max-w-xs truncate">{course.description}</span>}
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex shrink-0 items-center gap-1.5">
                   <button onClick={() => startEdit(course)}
                     className="rounded-sm border border-border p-1.5 text-muted-foreground hover:text-foreground" title="Szerkesztés">
-                    <Edit2 className="size-3.5"/>
+                    <Edit2 className="size-3.5" />
                   </button>
                   <button onClick={() => deleteCourse(course.id)}
                     className="rounded-sm bg-muted p-1.5 text-muted-foreground hover:text-destructive" title="Törlés">
-                    <Trash2 className="size-3.5"/>
+                    <Trash2 className="size-3.5" />
                   </button>
                 </div>
               </div>

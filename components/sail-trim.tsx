@@ -228,7 +228,7 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
       bodyClassName="p-0 overflow-hidden"
       style={{ height: '100%' }}
     >
-      <div style={{ display: 'flex', height: 'calc(100% - 36px)' }}>
+      <div style={{ display: 'flex', height: '100%' }}>
 
         {/* BAL: Hajó SVG + csere gombok */}
         <div style={{
@@ -258,7 +258,7 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
             <p style={{ fontFamily: 'var(--font-heading)', fontSize: '8px', letterSpacing: '2px', color: 'var(--muted-foreground)' }}>ORR VITORLA</p>
             <div style={{ display: 'flex', gap: '4px' }}>
               {(['fock', 'genua'] as const).map(s => (
-                <button key={s} onClick={() => setPendingSails(prev => ({ ...prev, [s]: !prev[s] }))}
+                <button key={s} onClick={() => toggle(s)}
                   className={cn('flex-1 rounded-sm border py-2 font-heading text-sm font-bold uppercase transition-colors',
                     sails[s] ? 'border-secondary bg-secondary/20 text-secondary' : 'border-border bg-background/50 text-muted-foreground')}>
                   {s}
@@ -268,7 +268,7 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
             <p style={{ fontFamily: 'var(--font-heading)', fontSize: '8px', letterSpacing: '2px', color: 'var(--muted-foreground)', marginTop: '2px' }}>HÁTSZÉL</p>
             <div style={{ display: 'flex', gap: '4px' }}>
               {(['spinn', 'genakker'] as const).map(s => (
-                <button key={s} onClick={() => setPendingSails(prev => ({ ...prev, [s]: !prev[s] }))}
+                <button key={s} onClick={() => toggle(s)}
                   className={cn('flex-1 rounded-sm border py-2 font-heading text-sm font-bold uppercase transition-colors',
                     sails[s] ? 'border-accent bg-accent/20 text-accent' : 'border-border bg-background/50 text-muted-foreground')}>
                   {s === 'spinn' ? 'Spin' : 'Gena'}
@@ -291,7 +291,7 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
           {/* Főv vitorla */}
           <div>
             <p style={{ fontFamily: 'var(--font-heading)', fontSize: '8px', letterSpacing: '2px', color: 'var(--muted-foreground)', marginBottom: '4px' }}>FŐ VITORLA</p>
-            <button onClick={() => setPendingSails(prev => ({ ...prev, gross: !prev.gross }))}
+            <button onClick={() => toggle('gross')}
               className={cn('w-full rounded-sm border py-2 font-heading text-sm font-bold uppercase transition-colors',
                 sails.gross ? 'border-secondary bg-secondary/20 text-secondary' : 'border-border bg-background/50 text-muted-foreground')}>
               GROSS
@@ -372,7 +372,7 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
                 label={label}
                 value={trim[key] as number}
                 disabled={!active}
-                height={360}
+                height={300}
                 onChange={v => { if (active) setTrim(prev => ({ ...prev, [key]: v })) }}
               />
             ))}

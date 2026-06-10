@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { getPocketBase, RACE_ID } from '@/lib/pocketbase'
 
 interface FinishOverlayProps {
@@ -9,6 +10,7 @@ interface FinishOverlayProps {
 }
 
 export function FinishOverlay({ finishedAt, onClose }: FinishOverlayProps) {
+  const router = useRouter()
   const [position, setPosition] = useState<number | null>(null)
   const [totalTime, setTotalTime] = useState('')
   const [playerName, setPlayerName] = useState('')
@@ -59,104 +61,99 @@ export function FinishOverlay({ finishedAt, onClose }: FinishOverlayProps) {
 
     load()
     // Animáció késleltetése
-    setTimeout(() => setShowContent(true), 300)
+    const t = setTimeout(() => setShowContent(true), 300)
+    return () => clearTimeout(t)
   }, [mounted, finishedAt])
 
   if (!mounted) return null
 
-  const posEmoji = position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : null
-  const posLabel = position === 1 ? 'GYŐZTES' : position === 2 ? '2. HELY' : position === 3 ? '3. HELY' : `${position}. HELY`
+  const posLabel =
+    position === 1 ? 'GYŐZTES'
+    : position === 2 ? '2. HELY'
+    : position === 3 ? '3. HELY'
+    : position ? `${position}. HELY`
+    : null
+
+  function goToHarbor() {
+    onClose()
+    router.push('/kikoto')
+  }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 9999,
-      background: 'rgba(8, 15, 22, 0.96)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      backdropFilter: 'blur(8px)',
-    }}>
-      <div style={{
-        textAlign: 'center', maxWidth: '520px', padding: '48px 40px',
-        opacity: showContent ? 1 : 0,
-        transform: showContent ? 'translateY(0)' : 'translateY(20px)',
-        transition: 'all 0.6s ease',
-      }}>
-        {/* CÉL felirat */}
-        <div style={{
-          fontFamily: 'var(--font-heading)', fontSize: '11px', letterSpacing: '6px',
-          color: 'rgba(253,249,224,0.6)', marginBottom: '16px', textTransform: 'uppercase',
-        }}>
-          ⚓ &nbsp; SIRÁLY REGATTA &nbsp; ⚓
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/95 p-4 backdrop-blur-sm">
+      <div
+        className="w-full max-w-lg overflow-hidden rounded-lg border border-border bg-card shadow-2xl transition-all duration-700"
+        style={{
+          opacity: showContent ? 1 : 0,
+          transform: showContent ? 'translateY(0)' : 'translateY(20px)',
+        }}
+      >
+        {/* Hangulatkép */}
+        <div className="relative">
+          <img
+            src="/finish-befuto.jpg"
+            alt="Vitorlás befut a célba a sárga FINISH bója mellett, a kikötő ünneplő tömegével, festett retró plakát stílusban"
+            className="h-44 w-full object-cover sm:h-52"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
         </div>
 
-        {/* Nagy CÉL */}
-        <div style={{
-          fontFamily: 'var(--font-heading)', fontSize: '72px', fontWeight: 900,
-          color: '#fdf9e0', letterSpacing: '4px', lineHeight: 1,
-          marginBottom: '8px',
-        }}>
-          CÉL
-        </div>
+        <div className="px-8 pb-8 pt-2 text-center">
+          {/* Regatta felirat */}
+          <p className="font-heading text-[11px] uppercase tracking-[0.4em] text-muted-foreground">
+            Sirály Regatta
+          </p>
 
-        {/* Vonal */}
-        <div style={{ width: '80px', height: '2px', background: 'var(--accent)', margin: '20px auto' }}/>
+          {/* Nagy CÉL */}
+          <h2 className="mt-2 font-heading text-6xl font-black tracking-wider text-foreground">
+            BEFUTÓ
+          </h2>
 
-        {/* Helyezés */}
-        {position && (
-          <div style={{ marginBottom: '32px' }}>
-            {posEmoji && (
-              <div style={{ fontSize: '64px', lineHeight: 1, marginBottom: '8px' }}>
-                {posEmoji}
-              </div>
-            )}
-            <div style={{
-              fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900,
-              color: position === 1 ? '#c8a030' : position <= 3 ? '#fdf9e0' : 'rgba(253,249,224,0.6)',
-              letterSpacing: '3px',
-            }}>
-              {posLabel}
+          <div className="mx-auto my-5 h-0.5 w-20 bg-accent" />
+
+          {/* Gratuláció */}
+          <p className="font-heading text-2xl font-bold tracking-wide text-foreground text-balance">
+            Gratulálunk{playerName ? `, ${playerName}` : ''}!
+          </p>
+          <p className="mt-3 leading-relaxed text-muted-foreground text-pretty">
+            Köszönjük, hogy részt vettél a versenyen. Büszkék lehetsz a teljesítményedre,
+            és reméljük, élvezted a Balaton szelét.
+          </p>
+
+          {/* Helyezés + idő adatok */}
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <div className="rounded-md border border-border bg-secondary/40 px-4 py-4">
+              <p className="font-heading text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                Helyezés
+              </p>
+              <p
+                className="mt-1 font-heading text-2xl font-black tracking-wide"
+                style={{ color: position === 1 ? 'var(--accent)' : 'var(--foreground)' }}
+              >
+                {posLabel ?? '—'}
+              </p>
             </div>
-            {playerName && (
-              <div style={{
-                fontFamily: 'var(--font-heading)', fontSize: '16px',
-                color: 'var(--accent)', letterSpacing: '2px', marginTop: '6px',
-              }}>
-                {playerName}
-              </div>
-            )}
+            <div className="rounded-md border border-border bg-secondary/40 px-4 py-4">
+              <p className="font-heading text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                Versenyidő
+              </p>
+              <p className="mt-1 font-heading text-2xl font-black tracking-wide text-foreground">
+                {totalTime || '--:--:--'}
+              </p>
+            </div>
           </div>
-        )}
 
-        {/* Idő */}
-        <div style={{
-          display: 'inline-block',
-          border: '1px solid rgba(253,249,224,0.2)', borderRadius: '4px',
-          padding: '16px 32px', marginBottom: '40px',
-          background: 'rgba(253,249,224,0.08)',
-        }}>
-          <div style={{
-            fontFamily: 'var(--font-heading)', fontSize: '10px', letterSpacing: '3px',
-            color: 'rgba(253,249,224,0.6)', marginBottom: '6px',
-          }}>
-            VERSENYIDŐ
-          </div>
-          <div style={{
-            fontFamily: 'var(--font-heading)', fontSize: '40px', fontWeight: 900,
-            color: '#fdf9e0', letterSpacing: '2px', lineHeight: 1,
-          }}>
-            {totalTime || '--:--:--'}
-          </div>
-        </div>
+          {/* Találkozunk a kikötőben */}
+          <p className="mt-6 font-heading text-sm uppercase tracking-[0.3em] text-accent">
+            Találkozunk a kikötőben
+          </p>
 
-        {/* Tovább gomb */}
-        <div>
-          <button onClick={onClose} style={{
-            background: 'var(--foreground)', color: 'var(--background)',
-            border: 'none', borderRadius: '4px', padding: '14px 48px',
-            fontFamily: 'var(--font-heading)', fontWeight: 700,
-            fontSize: '13px', letterSpacing: '3px', cursor: 'pointer',
-            transition: 'all 0.2s',
-          }}>
-            FEDÉLZET →
+          {/* Gomb */}
+          <button
+            onClick={goToHarbor}
+            className="mt-5 w-full rounded-md bg-foreground px-12 py-3.5 font-heading text-[13px] font-bold uppercase tracking-[0.25em] text-background transition-opacity hover:opacity-90"
+          >
+            Vissza a kikötőbe
           </button>
         </div>
       </div>

@@ -4,147 +4,101 @@ interface HeelIndicatorProps {
   heel: number // -40 to +40 fok, pozitív = jobb
 }
 
+const D2R = Math.PI / 180
+
 export function HeelIndicator({ heel = 0 }: HeelIndicatorProps) {
   const clamped = Math.max(-40, Math.min(40, heel))
-  const cx = 100, cy = 100, r = 80
-  const heelRad = (clamped * Math.PI) / 180
+  const cx = 100, cy = 110, r = 78
+  const danger = Math.abs(clamped) > 25
 
-  // Vízfelszín y koordináta
-  const waterY = 118
+  // Tű szöge: 0° = függőlegesen fel, ± = oldalra
+  const needleRad = (clamped - 90) * D2R
+  const needleLen = 62
+  const tipX = cx + Math.cos(needleRad) * needleLen
+  const tipY = cy + Math.sin(needleRad) * needleLen
 
-  // Hajó keresztmetszet dőlve (hátulnézet)
-  // Hajótest: lapos ellipszis aljával a vízben
-  // Árbóc: felfelé nyúlik, a dőlés irányában hajlik
-  const hullW = 38
-  const hullH = 14
-  const mastH = 72
-
-  // Dőlés szög alapján offset
-  const mastTipX = cx + Math.sin(heelRad) * mastH
-  const mastTipY = waterY - Math.cos(heelRad) * mastH
-  const mastBaseX = cx + Math.sin(heelRad) * 2
-  const mastBaseY = waterY - hullH / 2
-
-  // Hajótest sarokpontok dőlve
-  const hullLeft  = { x: cx - hullW * Math.cos(heelRad), y: waterY - hullH * Math.sin(heelRad) * 0.5 + hullW * Math.sin(heelRad) * 0.3 }
-  const hullRight = { x: cx + hullW * Math.cos(heelRad), y: waterY + hullH * Math.sin(heelRad) * 0.5 - hullW * Math.sin(heelRad) * 0.3 }
-  const hullBottom = { x: cx + Math.sin(heelRad) * hullH * 0.7, y: waterY + hullH * 0.6 }
-
-  // Skála ticks
+  // Skála ticks (-40..40, 10-esével)
   const ticks = [-40, -30, -20, -10, 0, 10, 20, 30, 40]
 
   return (
-    <div style={{ width: '100%', aspectRatio: '1', position: 'relative' }}>
-      <svg viewBox="0 0 200 200" style={{ width: '100%', height: '100%' }}>
-        <defs>
-          <radialGradient id="heelBg" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#2a3d52" />
-            <stop offset="100%" stopColor="#1a2535" />
-          </radialGradient>
-          <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2a6a7a" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#1a3a4a" stopOpacity="0.3" />
-          </linearGradient>
-          <clipPath id="dialClip">
-            <circle cx={cx} cy={cy} r={r} />
-          </clipPath>
-        </defs>
+    <div className="gauge-housing aspect-square w-full" style={{ maxWidth: 'min(100%, 320px)' }}>
+      <div className="gauge-face">
+        <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full">
+          {/* Biztonságos zóna ív (zöld) */}
+          <path
+            d={describeArc(cx, cy, r - 6, -25, 25)}
+            fill="none" stroke="oklch(0.6 0.13 165 / 0.5)" strokeWidth="5" strokeLinecap="round"
+          />
+          {/* Veszélyzónák (piros) */}
+          <path d={describeArc(cx, cy, r - 6, -40, -25)} fill="none" stroke="oklch(0.58 0.2 28 / 0.6)" strokeWidth="5" strokeLinecap="round" />
+          <path d={describeArc(cx, cy, r - 6, 25, 40)} fill="none" stroke="oklch(0.58 0.2 28 / 0.6)" strokeWidth="5" strokeLinecap="round" />
 
-        {/* Háttér kör */}
-        <circle cx={cx} cy={cy} r={r + 2} fill="url(#heelBg)" stroke="rgba(232,223,192,0.2)" strokeWidth="1.5" />
+          {/* Skála ticks */}
+          {ticks.map((deg) => {
+            const major = deg % 20 === 0
+            const a = (deg - 90) * D2R
+            const rOut = r - 1
+            const rIn = major ? r - 14 : r - 9
+            const x1 = cx + Math.cos(a) * rIn
+            const y1 = cy + Math.sin(a) * rIn
+            const x2 = cx + Math.cos(a) * rOut
+            const y2 = cy + Math.sin(a) * rOut
+            const lx = cx + Math.cos(a) * (r - 22)
+            const ly = cy + Math.sin(a) * (r - 22)
+            return (
+              <g key={deg}>
+                <line x1={x1} y1={y1} x2={x2} y2={y2}
+                  stroke={Math.abs(deg) >= 30 ? 'oklch(0.62 0.2 28)' : major ? 'oklch(0.86 0.04 88)' : 'oklch(0.6 0.04 230)'}
+                  strokeWidth={major ? 1.4 : 0.7} />
+                {major && (
+                  <text x={lx} y={ly + 2.5} textAnchor="middle"
+                    fill="oklch(0.7 0.04 90)" className="font-mono" fontSize="7">
+                    {Math.abs(deg)}
+                  </text>
+                )}
+              </g>
+            )
+          })}
 
-        {/* Veszélyzóna ívek */}
-        {/* Bal -40..-25 */}
-        <path d={`M ${cx - r * 0.5} ${cy} A ${r * 0.5} ${r * 0.5} 0 0 0 ${cx - r * 0.85} ${cy + r * 0.1}`}
-          fill="rgba(196,43,28,0.08)" />
+          {/* Oldal feliratok */}
+          <text x={cx - r + 6} y={cy + 6} textAnchor="middle" fill="oklch(0.6 0.04 230)" className="font-mono" fontSize="8">BB</text>
+          <text x={cx + r - 6} y={cy + 6} textAnchor="middle" fill="oklch(0.6 0.04 230)" className="font-mono" fontSize="8">SB</text>
 
-        {/* Skála körív */}
-        <path d={`M ${cx - r + 8} ${waterY} A ${r - 8} ${r - 8} 0 0 1 ${cx + r - 8} ${waterY}`}
-          fill="none" stroke="rgba(232,223,192,0.15)" strokeWidth="1" />
+          {/* Tű */}
+          <line x1={cx} y1={cy} x2={tipX} y2={tipY}
+            stroke={danger ? 'oklch(0.62 0.22 28)' : 'oklch(0.92 0.03 88)'} strokeWidth="2.5" strokeLinecap="round" />
+          <circle cx={tipX} cy={tipY} r="3" fill={danger ? 'oklch(0.62 0.22 28)' : 'oklch(0.92 0.03 88)'} />
 
-        {/* Skála ticks */}
-        {ticks.map(deg => {
-          const major = deg % 20 === 0 || deg === 0
-          const rad = ((deg / 40) * Math.PI / 2) // -90° to +90° félkör
-          const tickR = r - 8
-          const inner = major ? tickR - 10 : tickR - 5
-          // Félkör alján: 0° = alul közép, ±40° = bal/jobb
-          const angle = Math.PI / 2 + rad  // 90° = bottom, ±= sides
-          const x1 = cx + inner * Math.cos(Math.PI - angle)
-          const y1 = waterY - inner * Math.sin(Math.PI - angle) * 0.3 + (tickR - inner) * 0.5
-          const x2 = cx + tickR * Math.cos(Math.PI - angle)
-          const y2 = waterY - tickR * Math.sin(Math.PI - angle) * 0.3 + 5
-          // Egyszerűbb: vízszintes skála a vízfelszín alján
-          const px = cx + (deg / 40) * (r - 15)
-          const py1 = waterY + 5
-          const py2 = major ? waterY + 14 : waterY + 9
-          return (
-            <g key={deg}>
-              <line x1={px} y1={py1} x2={px} y2={py2}
-                stroke={Math.abs(deg) >= 30 ? 'rgba(196,43,28,0.6)' : major ? 'rgba(232,223,192,0.7)' : 'rgba(232,223,192,0.3)'}
-                strokeWidth={major ? 1.2 : 0.6} />
-              {major && (
-                <text x={px} y={py2 + 8} textAnchor="middle"
-                  fill="rgba(232,223,192,0.5)" fontSize="6.5" fontFamily="monospace">
-                  {Math.abs(deg)}
-                </text>
-              )}
-            </g>
-          )
-        })}
+          {/* Tengely-csavar */}
+          <circle cx={cx} cy={cy} r="7" fill="oklch(0.7 0.1 78)" stroke="oklch(0.4 0.06 70)" strokeWidth="1" />
+          <circle cx={cx} cy={cy} r="2.5" fill="oklch(0.3 0.04 250)" />
 
-        {/* SB / BB felirat */}
-        <text x={cx - r + 8} y={waterY + 4} fill="rgba(232,223,192,0.4)" fontSize="7" fontFamily="monospace">SB</text>
-        <text x={cx + r - 18} y={waterY + 4} fill="rgba(232,223,192,0.4)" fontSize="7" fontFamily="monospace">BB</text>
+          {/* LCD fok-kijelző */}
+          <foreignObject x="62" y="138" width="76" height="34">
+            <div className={`lcd-screen ${danger ? '' : ''} flex h-full w-full flex-col items-center justify-center leading-none`}>
+              <span className="text-[16px] font-bold tracking-tight" style={danger ? { color: 'oklch(0.78 0.18 30)', textShadow: '0 0 6px oklch(0.7 0.2 30 / 0.8)' } : undefined}>
+                {clamped > 0 ? '+' : ''}{clamped.toFixed(1)}°
+              </span>
+              <span className="text-[7px] opacity-75">DŐLÉS</span>
+            </div>
+          </foreignObject>
 
-        {/* Vízfelszín */}
-        <rect x={cx - r + 5} y={waterY} width={(r - 5) * 2} height={r - waterY + cx + 5}
-          fill="url(#waterGrad)" clipPath="url(#dialClip)" />
-        <line x1={cx - r + 5} y1={waterY} x2={cx + r - 5} y2={waterY}
-          stroke="#2a6a7a" strokeWidth="1.5" opacity="0.8" />
-
-        {/* Hajótest keresztmetszet (hátulnézet, dőlve) */}
-        <g transform={`rotate(${clamped} ${cx} ${waterY})`}>
-          {/* Hull */}
-          <path d={`M ${cx - hullW} ${waterY - 4} 
-                    Q ${cx} ${waterY + hullH} ${cx + hullW} ${waterY - 4}
-                    L ${cx + hullW * 0.6} ${waterY - hullH}
-                    L ${cx - hullW * 0.6} ${waterY - hullH} Z`}
-            fill="#1a2535" stroke="rgba(232,223,192,0.7)" strokeWidth="1.2" />
-          {/* Keel */}
-          <line x1={cx} y1={waterY + 4} x2={cx} y2={waterY + hullH + 8}
-            stroke="rgba(232,223,192,0.5)" strokeWidth="2" strokeLinecap="round" />
-          {/* Árbóc */}
-          <line x1={cx} y1={waterY - hullH} x2={cx} y2={waterY - hullH - mastH}
-            stroke="rgba(232,223,192,0.9)" strokeWidth="1.8" strokeLinecap="round" />
-          {/* Árbocrúd vég */}
-          <circle cx={cx} cy={waterY - hullH - mastH} r="2.5" fill="rgba(232,223,192,0.8)" />
-          {/* Vanta (stay) */}
-          <line x1={cx} y1={waterY - hullH - mastH * 0.7}
-                x2={cx + hullW * 0.7} y2={waterY - hullH + 2}
-            stroke="rgba(232,223,192,0.25)" strokeWidth="0.75" />
-          <line x1={cx} y1={waterY - hullH - mastH * 0.7}
-                x2={cx - hullW * 0.7} y2={waterY - hullH + 2}
-            stroke="rgba(232,223,192,0.25)" strokeWidth="0.75" />
-        </g>
-
-        {/* Dőlés érték */}
-        <text x={cx} y={cy - 45} textAnchor="middle"
-          fill={Math.abs(clamped) > 25 ? '#c42b1c' : 'rgba(232,223,192,0.9)'}
-          fontSize="13" fontFamily="monospace" fontWeight="bold">
-          {clamped > 0 ? '+' : ''}{clamped.toFixed(1)}°
-        </text>
-
-        {/* Label */}
-        <text x={cx} y={cy - 30} textAnchor="middle"
-          fill="rgba(232,223,192,0.4)" fontSize="7" fontFamily="var(--font-heading)" letterSpacing="2">
-          DŐLÉS
-        </text>
-
-        {/* Középvonal referencia */}
-        <line x1={cx} y1={waterY - r + 15} x2={cx} y2={waterY - 5}
-          stroke="rgba(232,223,192,0.1)" strokeWidth="0.75" strokeDasharray="3 3" />
-      </svg>
+          <div className="glass-dome" />
+        </svg>
+        <div className="glass-dome" />
+      </div>
     </div>
   )
+}
+
+function polarToXY(cx: number, cy: number, r: number, deg: number) {
+  const a = (deg - 90) * D2R
+  return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) }
+}
+
+function describeArc(cx: number, cy: number, r: number, startDeg: number, endDeg: number) {
+  const start = polarToXY(cx, cy, r, endDeg)
+  const end = polarToXY(cx, cy, r, startDeg)
+  const large = endDeg - startDeg <= 180 ? 0 : 1
+  return `M ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${r} ${r} 0 ${large} 0 ${end.x.toFixed(2)} ${end.y.toFixed(2)}`
 }

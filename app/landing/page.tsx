@@ -3,6 +3,19 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getPocketBase } from '@/lib/pocketbase'
+import {
+  Anchor,
+  Sailboat,
+  Waves,
+  Trophy,
+  ArrowRight,
+  Wind,
+  Coins,
+  Compass,
+  Medal,
+  ClipboardList,
+  Flag,
+} from 'lucide-react'
 
 interface Race {
   id: string
@@ -21,23 +34,49 @@ interface LeaderEntry {
 }
 
 function Countdown({ target }: { target: string }) {
-  const [diff, setDiff] = useState('')
+  const [parts, setParts] = useState<{ d: number; h: number; m: number; s: number } | null>(null)
+  const [done, setDone] = useState(false)
   useEffect(() => {
     function update() {
       const ms = new Date(target).getTime() - Date.now()
-      if (ms <= 0) { setDiff('RAJT!'); return }
-      const d = Math.floor(ms / 86400000)
-      const h = Math.floor((ms % 86400000) / 3600000)
-      const m = Math.floor((ms % 3600000) / 60000)
-      const s = Math.floor((ms % 60000) / 1000)
-      if (d > 0) setDiff(`${d} nap ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`)
-      else setDiff(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`)
+      if (ms <= 0) {
+        setDone(true)
+        return
+      }
+      setParts({
+        d: Math.floor(ms / 86400000),
+        h: Math.floor((ms % 86400000) / 3600000),
+        m: Math.floor((ms % 3600000) / 60000),
+        s: Math.floor((ms % 60000) / 1000),
+      })
     }
     update()
     const t = setInterval(update, 1000)
     return () => clearInterval(t)
   }, [target])
-  return <span>{diff}</span>
+
+  if (done) return <span className="font-heading text-2xl font-black text-primary">RAJT!</span>
+  if (!parts) return <span className="font-heading text-2xl font-black text-primary">--:--:--</span>
+
+  const cells = [
+    parts.d > 0 ? { v: parts.d, l: 'NAP' } : null,
+    { v: parts.h, l: 'ÓRA' },
+    { v: parts.m, l: 'PERC' },
+    { v: parts.s, l: 'MP' },
+  ].filter(Boolean) as { v: number; l: string }[]
+
+  return (
+    <div className="flex items-end gap-2">
+      {cells.map((c, i) => (
+        <div key={i} className="flex flex-col items-center">
+          <span className="font-heading text-2xl font-black leading-none text-foreground tabular-nums">
+            {String(c.v).padStart(2, '0')}
+          </span>
+          <span className="label-caps mt-1 text-[8px] text-muted-foreground">{c.l}</span>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export default function LandingPage() {
@@ -46,7 +85,9 @@ export default function LandingPage() {
   const [leaders, setLeaders] = useState<LeaderEntry[]>([])
   const [mounted, setMounted] = useState(false)
 
-  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!mounted) return
@@ -63,14 +104,17 @@ export default function LandingPage() {
 
       try {
         const profiles = await pb.collection('player_profiles').getFullList({
-          sort: '-xp', perPage: 5,
+          sort: '-xp',
+          perPage: 5,
         })
-        setLeaders(profiles.map((p: any) => ({
-          name: p.display_name || 'Versenyző',
-          xp: p.xp || 0,
-          total_races: p.total_races || 0,
-          total_wins: p.total_wins || 0,
-        })))
+        setLeaders(
+          profiles.slice(0, 5).map((p: any) => ({
+            name: p.display_name || 'Versenyző',
+            xp: p.xp || 0,
+            total_races: p.total_races || 0,
+            total_wins: p.total_wins || 0,
+          })),
+        )
       } catch {}
     }
     load()
@@ -79,235 +123,319 @@ export default function LandingPage() {
   if (!mounted) return null
 
   const steps = [
-    { num: '01', icon: '⚓', title: 'Nevezz be', desc: 'Válassz versenyt, bérelj hajót és kapitányt. A nevezési díjat kreditből fizeted — ezeket versenyeken szerezheted.' },
-    { num: '02', icon: '⛵', title: 'Rajtolj el', desc: 'A rajt előtt 5 perccel aktívvá válik a Start gomb. Időben lépj fedélzetre és indulj el — késés esetén a nevezés törlődik.' },
-    { num: '03', icon: '🌊', title: 'Vitorlázz', desc: 'Állítsd be a vitorlákat és a trimet az aktuális szélhez. A fizikai motor valós polar adatok alapján számítja a sebességet — minden döntés számít.' },
-    { num: '04', icon: '🏆', title: 'Célba érj', desc: 'Érintsd meg a bólyákat sorban és érj célba a lehető legjobb idővel. A top 3 extra kreditet és XP-t kap, minden bólyánál 10 kredit jár.' },
+    {
+      num: '01',
+      icon: ClipboardList,
+      title: 'Nevezz be',
+      desc: 'Válassz versenyt, bérelj hajót és kapitányt. A nevezési díjat kreditből fizeted — ezeket versenyeken szerezheted.',
+    },
+    {
+      num: '02',
+      icon: Flag,
+      title: 'Rajtolj el',
+      desc: 'A rajt előtt 5 perccel aktívvá válik a Start gomb. Időben lépj fedélzetre és indulj — késés esetén a nevezés törlődik.',
+    },
+    {
+      num: '03',
+      icon: Waves,
+      title: 'Vitorlázz',
+      desc: 'Állítsd a vitorlákat és a trimet az aktuális szélhez. A fizikai motor valós polar adatok alapján számol — minden döntés számít.',
+    },
+    {
+      num: '04',
+      icon: Trophy,
+      title: 'Célba érj',
+      desc: 'Érintsd a bólyákat sorban és érj célba a legjobb idővel. A top 3 extra kreditet és XP-t kap, minden bólyánál 10 kredit jár.',
+    },
   ]
 
+  const facts = [
+    { icon: Waves, title: 'Valós fizika', desc: 'Polar táblázatok alapján számított hajósebesség, drift és dőlés — minden vitorla- és trimbeállítás számít.' },
+    { icon: Wind, title: 'Élő időjárás', desc: 'Versenyenként szakaszokra bontott széladatok — viharban refelj, jó szélben optimalizálj.' },
+    { icon: Coins, title: 'Kredit rendszer', desc: 'Bólyánként 10 kredit bónusz. A top 3 befutónak extra nyeremény. Kredit egyenlegből bérelhetsz hajót, kapitányt és vehetsz felszerelést. Hajóvásárlás hamarosan.' },
+    { icon: Compass, title: 'Kapitányok', desc: 'Minden kapitánynak egyedi képessége van — trimmester, viharlovas, rajtmester. Válassz okosan.' },
+  ]
+
+  const medalColor = (i: number) =>
+    i === 0 ? 'text-[var(--gold)]' : i === 1 ? 'text-muted-foreground' : i === 2 ? 'text-primary' : 'text-muted-foreground'
+
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--background)', color: 'var(--foreground)' }}>
+    <div className="min-h-screen bg-background text-foreground">
+      {/* ===== HERO ===== */}
+      <section className="relative overflow-hidden bg-[var(--ink)]">
+        <div className="mx-auto grid max-w-6xl items-center gap-8 px-6 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">
+          {/* Szöveg */}
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 text-[oklch(0.93_0.02_92)]">
+              <Anchor className="size-4" strokeWidth={1.75} />
+              <span className="label-caps text-[10px] opacity-80">Balatoni Vitorlás Szimulátor</span>
+            </div>
 
-      {/* Hero */}
-      <div style={{
-        position: 'relative', overflow: 'hidden',
-        background: '#d25c1c',
-        minHeight: '420px',
-        display: 'flex', alignItems: 'center',
-      }}>
-        {/* Poster háttér */}
-        <div style={{
-          position: 'absolute', right: 0, top: 0, bottom: 0,
-          width: '50%', opacity: 0.25,
-          backgroundImage: 'url(/poster.svg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center left',
-        }}/>
+            <h1 className="font-heading mt-5 text-balance text-6xl font-black leading-[0.9] tracking-tight text-[oklch(0.97_0.01_95)] sm:text-7xl lg:text-8xl">
+              Sirály
+              <br />
+              <span className="text-primary">Regatta</span>
+            </h1>
 
-        <div style={{ position: 'relative', maxWidth: '900px', margin: '0 auto', padding: '64px 32px' }}>
-          <div style={{
-            fontFamily: 'var(--font-heading)', fontSize: '11px', letterSpacing: '5px',
-            color: 'rgba(253,249,224,0.7)', marginBottom: '16px', textTransform: 'uppercase',
-          }}>
-            ⚓ &nbsp; Balatoni Vitorlás Szimulátor
+            <p className="mt-6 max-w-lg text-pretty text-lg leading-relaxed text-[oklch(0.9_0.02_92)]/90">
+              Szél. Víz. Barátság. Kaland. Lépj a fedélzetre, és éld át a balatoni
+              vitorlásversenyeinek hangulatát — valós fizikán alapuló, böngészőből játszható regattában.
+            </p>
+
+            <div className="mt-9 flex flex-wrap gap-3">
+              <button
+                onClick={() => router.push('/kikoto')}
+                className="group inline-flex items-center gap-2 rounded-md bg-primary px-8 py-4 font-heading text-base font-black tracking-wide text-primary-foreground shadow-lg transition-transform hover:-translate-y-0.5"
+              >
+                CSATLAKOZZ MOST
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" strokeWidth={2.5} />
+              </button>
+              <button
+                onClick={() => router.push('/kikoto')}
+                className="inline-flex items-center gap-2 rounded-md border border-[oklch(0.97_0.01_95)]/40 px-8 py-4 font-heading text-base font-bold tracking-wide text-[oklch(0.97_0.01_95)] transition-colors hover:bg-[oklch(0.97_0.01_95)]/10"
+              >
+                <Sailboat className="size-4" strokeWidth={1.75} />
+                NÉZD MEG A KIKÖTŐT
+              </button>
+            </div>
+
+            <p className="mt-5 text-sm text-[oklch(0.85_0.02_92)]/70">
+              Ingyenes · Regisztrálj és nevezz az első versenyedre percek alatt.
+            </p>
           </div>
-          <h1 style={{
-            fontFamily: 'var(--font-heading)', fontSize: 'clamp(48px, 6vw, 80px)',
-            fontWeight: 900, color: '#fdf9e0', letterSpacing: '3px',
-            lineHeight: 1, marginBottom: '24px',
-          }}>
-            SIRÁLY<br/>REGATTA
-          </h1>
-          <p style={{
-            fontFamily: 'var(--font-sans)', fontSize: '16px', lineHeight: 1.6,
-            color: 'rgba(253,249,224,0.85)', maxWidth: '520px', marginBottom: '32px',
-          }}>
-            Egy böngészőből játszható, valós fizikán alapuló vitorlásverseny-szimulátor a Balatonon.
-            Nevezz be, válassz hajót és kapitányt, állítsd be a vitorlákat — és versenyezz élőben
-            más játékosok ellen.
-          </p>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <button onClick={() => router.push('/kikoto')} style={{
-              background: '#fdf9e0', color: '#1a2535',
-              border: 'none', borderRadius: '4px', padding: '14px 36px',
-              fontFamily: 'var(--font-heading)', fontWeight: 700,
-              fontSize: '14px', letterSpacing: '2px', cursor: 'pointer',
-            }}>
-              KIKÖTŐ →
-            </button>
-            <button onClick={() => router.push('/dashboard')} style={{
-              background: 'transparent', color: '#fdf9e0',
-              border: '1px solid rgba(253,249,224,0.5)', borderRadius: '4px',
-              padding: '14px 36px',
-              fontFamily: 'var(--font-heading)', fontWeight: 700,
-              fontSize: '14px', letterSpacing: '2px', cursor: 'pointer',
-            }}>
-              FEDÉLZET
-            </button>
+
+          {/* Illusztráció */}
+          <div className="relative">
+            <div className="relative overflow-hidden rounded-xl border-4 border-[oklch(0.97_0.01_95)]/15 shadow-2xl">
+              <img
+                src="/poster-hero.jpg"
+                alt="Lake Balaton Sailing Race plakát mosolygó vitorlázó párral és versenyhajókkal, festett retró stílusban"
+                className="h-full w-full object-cover"
+              />
+              <div className="paper-grain absolute inset-0 opacity-30" aria-hidden />
+            </div>
+            {/* kis lebegő plakett */}
+            <div className="absolute -bottom-4 -left-4 hidden rounded-lg border border-border bg-card px-5 py-3 shadow-xl sm:block">
+              <p className="font-heading text-lg font-black leading-tight text-card-foreground">
+                A széllel nem lehet vitatkozni.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Következő verseny */}
+      {/* ===== KÖVETKEZŐ VERSENY SÁV ===== */}
       {nextRace && (
-        <div style={{ background: 'var(--muted)', borderBottom: '1px solid var(--border)', padding: '20px 32px' }}>
-          <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '32px', flexWrap: 'wrap' }}>
-            <div>
-              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '9px', letterSpacing: '3px', color: 'var(--muted-foreground)', marginBottom: '4px' }}>
-                KÖVETKEZŐ VERSENY
-              </div>
-              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 900, color: 'var(--foreground)' }}>
-                {nextRace.name}
-              </div>
-              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: 'var(--muted-foreground)', marginTop: '2px' }}>
-                {new Date(nextRace.scheduled_start).toLocaleString('hu-HU')}
-              </div>
+        <section className="border-b border-border bg-card">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-10 gap-y-5 px-6 py-6">
+            <div className="min-w-[200px] flex-1">
+              <span className="label-caps text-[9px] text-primary">Következő verseny</span>
+              <h3 className="font-heading mt-1 text-xl font-black text-foreground">{nextRace.name}</h3>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {new Date(nextRace.scheduled_start).toLocaleString('hu-HU', {
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
             </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '9px', letterSpacing: '3px', color: 'var(--muted-foreground)', marginBottom: '4px' }}>
-                VISSZASZÁMLÁLÁS
-              </div>
-              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', fontWeight: 900, color: '#d25c1c' }}>
+
+            <div className="border-l border-border pl-8">
+              <span className="label-caps text-[9px] text-muted-foreground">Visszaszámlálás</span>
+              <div className="mt-1.5">
                 <Countdown target={nextRace.scheduled_start} />
               </div>
             </div>
-            <div style={{ marginLeft: 'auto' }}>
-              <button onClick={() => router.push('/kikoto')} style={{
-                background: '#d25c1c', color: '#fdf9e0',
-                border: 'none', borderRadius: '4px', padding: '10px 28px',
-                fontFamily: 'var(--font-heading)', fontWeight: 700,
-                fontSize: '12px', letterSpacing: '2px', cursor: 'pointer',
-              }}>
-                NEVEZÉS →
-              </button>
-            </div>
+
+            <button
+              onClick={() => router.push('/kikoto')}
+              className="group ml-auto inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 font-heading text-xs font-bold tracking-wide text-primary-foreground transition-transform hover:-translate-y-0.5"
+            >
+              NEVEZÉS
+              <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" strokeWidth={2} />
+            </button>
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Hogyan működik */}
-      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '64px 32px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: '9px', letterSpacing: '4px', color: 'var(--muted-foreground)', marginBottom: '8px' }}>
-            HOGYAN MŰKÖDIK
-          </div>
-          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900, color: 'var(--foreground)', letterSpacing: '1px' }}>
-            A VERSENY MENETE
+      {/* ===== ÉLMÉNY SÁV — illusztrált ===== */}
+      <section className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-20 sm:py-24 lg:grid-cols-2">
+        <div className="relative overflow-hidden rounded-xl border border-border shadow-lg">
+          <img
+            src="/race-start.jpg"
+            alt="Versenybíró rajtpisztolyt süt el a hajóról jelzőzászlókkal, festett retró plakát stílusban"
+            className="h-full w-full object-cover"
+          />
+          <div className="paper-grain absolute inset-0 opacity-25" aria-hidden />
+        </div>
+        <div>
+          <span className="label-caps text-[10px] text-primary">Több mint sport</span>
+          <h2 className="font-heading mt-2 text-balance text-4xl font-black tracking-tight text-foreground sm:text-5xl">
+            Életérzés a vízen
           </h2>
+          <p className="mt-5 text-pretty text-base leading-relaxed text-muted-foreground">
+            Markold meg a kormányt, feszítsd a vitorlát, és figyeld a szelet. Minden beállítás, minden
+            fordulat számít — ahogy egy igazi balatoni regattán. Itt nem csak versenyzel, hanem
+            belépsz egy közösségbe, ahol a Balaton, a szél és a barátság írja a történetet.
+          </p>
+          <div className="mt-7 grid gap-5 sm:grid-cols-2">
+            {facts.map((item) => {
+              const Icon = item.icon
+              return (
+                <div key={item.title} className="flex gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-secondary/10 text-secondary">
+                    <Icon className="size-5" strokeWidth={1.75} />
+                  </div>
+                  <div>
+                    <h3 className="font-heading text-base font-bold text-foreground">{item.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
+      </section>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-          {steps.map(step => (
-            <div key={step.num} style={{
-              background: 'var(--card)', borderRadius: '4px',
-              border: '1px solid var(--border)', padding: '24px',
-              position: 'relative', overflow: 'hidden',
-            }}>
-              <div style={{
-                position: 'absolute', top: '12px', right: '16px',
-                fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900,
-                color: 'rgba(210,92,28,0.12)',
-              }}>
-                {step.num}
-              </div>
-              <div style={{ fontSize: '28px', marginBottom: '12px' }}>{step.icon}</div>
-              <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '16px', fontWeight: 900, color: 'var(--card-foreground)', marginBottom: '8px', letterSpacing: '1px' }}>
-                {step.title}
-              </h3>
-              <p style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', lineHeight: 1.6, color: 'var(--muted-foreground)' }}>
-                {step.desc}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Ranglista + Info */}
-      <div style={{ background: 'var(--muted)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ maxWidth: '900px', margin: '0 auto', padding: '64px 32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px' }}>
-
-          {/* Ranglista */}
-          <div>
-            <div style={{ fontFamily: 'var(--font-heading)', fontSize: '9px', letterSpacing: '4px', color: 'var(--muted-foreground)', marginBottom: '8px' }}>
-              RANGLISTA
-            </div>
-            <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', fontWeight: 900, color: 'var(--foreground)', marginBottom: '24px' }}>
-              TOP VERSENYZŐK
+      {/* ===== HOGYAN MŰKÖDIK ===== */}
+      <section className="border-y border-border bg-muted/60">
+        <div className="mx-auto max-w-6xl px-6 py-20 sm:py-24">
+          <div className="max-w-2xl">
+            <span className="label-caps text-[10px] text-primary">Hogyan működik</span>
+            <h2 className="font-heading mt-2 text-balance text-4xl font-black tracking-tight text-foreground sm:text-5xl">
+              A verseny menete
             </h2>
-            {leaders.length === 0 ? (
-              <p style={{ fontFamily: 'var(--font-sans)', fontSize: '13px', color: 'var(--muted-foreground)' }}>Még nincs elég adat.</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {leaders.map((l, i) => (
-                  <div key={i} style={{
-                    display: 'flex', alignItems: 'center', gap: '12px',
-                    background: 'var(--card)', borderRadius: '4px',
-                    border: '1px solid var(--border)', padding: '10px 16px',
-                  }}>
-                    <span style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 900, color: i === 0 ? '#c8a030' : i === 1 ? '#999' : i === 2 ? '#c87a30' : 'var(--muted-foreground)', width: '28px' }}>
-                      {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`}
-                    </span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontFamily: 'var(--font-heading)', fontSize: '14px', fontWeight: 700, color: 'var(--card-foreground)' }}>{l.name}</div>
-                      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: 'var(--muted-foreground)' }}>
-                        {l.total_races} verseny · {l.total_wins} győzelem
-                      </div>
+          </div>
+
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {steps.map((step) => {
+              const Icon = step.icon
+              return (
+                <div
+                  key={step.num}
+                  className="group relative overflow-hidden rounded-lg border border-border bg-card p-6 transition-colors hover:border-primary/40"
+                >
+                  <span className="font-heading pointer-events-none absolute -right-1 -top-3 text-7xl font-black text-primary/[0.07]">
+                    {step.num}
+                  </span>
+                  <div className="flex size-11 items-center justify-center rounded-md bg-secondary/10 text-secondary">
+                    <Icon className="size-5" strokeWidth={1.75} />
+                  </div>
+                  <h3 className="font-heading mt-5 text-lg font-black tracking-wide text-card-foreground">
+                    {step.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.desc}</p>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Pálya-térkép illusztráció */}
+          <div className="mt-12 overflow-hidden rounded-xl border border-border shadow-lg">
+            <img
+              src="/lake-panorama.jpg"
+              alt="Balatoni panoráma naplementében sirályokkal és vitorlásokkal, festett retró stílusban"
+              className="h-[260px] w-full object-cover object-center sm:h-[360px]"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ===== RANGLISTA + DOBOGÓ ===== */}
+      <section className="mx-auto grid max-w-6xl gap-14 px-6 py-20 sm:py-24 lg:grid-cols-2 lg:items-center">
+        {/* Ranglista */}
+        <div>
+          <span className="label-caps text-[10px] text-primary">Ranglista</span>
+          <h2 className="font-heading mt-2 text-3xl font-black tracking-tight text-foreground">
+            Top versenyzők
+          </h2>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Vívd ki a helyed a dobogón. Minden győzelem XP-t és örök dicsőséget hoz.
+          </p>
+
+          {leaders.length === 0 ? (
+            <p className="mt-6 text-sm text-muted-foreground">Még nincs elég adat.</p>
+          ) : (
+            <ol className="mt-7 flex flex-col gap-2.5">
+              {leaders.map((l, i) => (
+                <li
+                  key={i}
+                  className="flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:border-primary/40"
+                >
+                  <span className="flex w-7 shrink-0 items-center justify-center">
+                    {i < 3 ? (
+                      <Medal className={`size-5 ${medalColor(i)}`} strokeWidth={2} />
+                    ) : (
+                      <span className="font-heading text-sm font-black text-muted-foreground">
+                        {i + 1}
+                      </span>
+                    )}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-heading truncate text-base font-bold text-card-foreground">
+                      {l.name}
                     </div>
-                    <div style={{ fontFamily: 'var(--font-heading)', fontSize: '14px', fontWeight: 700, color: '#d25c1c' }}>
-                      {l.xp} XP
+                    <div className="text-xs text-muted-foreground">
+                      {l.total_races} verseny · {l.total_wins} győzelem
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  <div className="font-heading shrink-0 text-base font-black text-primary tabular-nums">
+                    {l.xp.toLocaleString('hu-HU')} XP
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
 
-          {/* Info */}
-          <div>
-            <div style={{ fontFamily: 'var(--font-heading)', fontSize: '9px', letterSpacing: '4px', color: 'var(--muted-foreground)', marginBottom: '8px' }}>
-              A JÁTÉKRÓL
+        {/* Dobogó illusztráció */}
+        <div className="relative overflow-hidden rounded-xl border border-border shadow-lg">
+          <img
+            src="/race-podium.jpg"
+            alt="Vitorlás díjkiosztó dobogó három versenyzővel és kupákkal a kikötőben, festett retró stílusban"
+            className="h-full w-full object-cover"
+          />
+          <div className="paper-grain absolute inset-0 opacity-25" aria-hidden />
+        </div>
+      </section>
+
+      {/* ===== FOOTER CTA — világítótorony illusztrációval ===== */}
+      <section className="relative overflow-hidden bg-[var(--ink)]">
+        <div className="absolute inset-y-0 right-0 hidden w-1/2 lg:block">
+          <img
+            src="/illustration-lighthouse.png"
+            alt="Világítótorony naplementében egy vitorlással, festett retró plakát stílusban"
+            className="h-full w-full object-cover opacity-60"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[var(--ink)] via-[var(--ink)]/70 to-transparent" />
+        </div>
+
+        <div className="relative mx-auto max-w-6xl px-6 py-24">
+          <div className="max-w-xl">
+            <div className="flex items-center gap-2 text-[oklch(0.93_0.02_92)]">
+              <Anchor className="size-4" strokeWidth={1.75} />
+              <span className="label-caps text-[10px] opacity-80">SIRÁLY REGATTA</span>
             </div>
-            <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', fontWeight: 900, color: 'var(--foreground)', marginBottom: '24px' }}>
-              AMIT TUDNOD KELL
+            <h2 className="font-heading mt-5 text-balance text-5xl font-black tracking-tight text-[oklch(0.97_0.01_95)] sm:text-6xl">
+              Állítsd be a vitorlát.
+              <br />
+              <span className="text-primary">A tó a tiéd.</span>
             </h2>
-            {[
-              { icon: '🌊', title: 'Valós fizika', desc: 'Polar táblázatok alapján számított hajósebesség, drift, dőlés — minden vitorla és trim beállítás számít.' },
-              { icon: '💨', title: 'Élő időjárás', desc: 'Minden versenyhez előre beállított széladatok szakaszonként — viharban ref, jó szélben optimalizálj.' },
-              { icon: '🪙', title: 'Kredit rendszer', desc: 'Bólyánként 10 kredit, a top 3 extra nyereményt kap. Kreditből bérelsz hajót, kapitányt és vásárolsz felszerelést.' },
-              { icon: '⚓', title: 'Kapitányok', desc: 'Minden kapitánynak egyedi gadgetje van — trim mester, viharlovas, rajtmester. Válassz okosan.' },
-            ].map(item => (
-              <div key={item.title} style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-                <div style={{ fontSize: '20px', flexShrink: 0, marginTop: '2px' }}>{item.icon}</div>
-                <div>
-                  <div style={{ fontFamily: 'var(--font-heading)', fontSize: '13px', fontWeight: 700, color: 'var(--foreground)', marginBottom: '3px' }}>{item.title}</div>
-                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', lineHeight: 1.6, color: 'var(--muted-foreground)' }}>{item.desc}</div>
-                </div>
-              </div>
-            ))}
+            <p className="mt-5 text-pretty text-lg text-[oklch(0.9_0.02_92)]/80">
+              A következő verseny már vár. Nevezz be, válaszd ki a hajódat, és írd be a neved a
+              Balaton legjobbjai közé.
+            </p>
+            <button
+              onClick={() => router.push('/kikoto')}
+              className="group mt-9 inline-flex items-center gap-2 rounded-md bg-primary px-9 py-4 font-heading text-base font-black tracking-wide text-primary-foreground shadow-lg transition-transform hover:-translate-y-0.5"
+            >
+              BELÉPÉS A KIKÖTŐBE
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" strokeWidth={2.5} />
+            </button>
           </div>
         </div>
-      </div>
-
-      {/* Footer CTA */}
-      <div style={{ textAlign: 'center', padding: '64px 32px', background: 'var(--background)' }}>
-        <div style={{ fontFamily: 'var(--font-heading)', fontSize: '11px', letterSpacing: '4px', color: 'var(--muted-foreground)', marginBottom: '16px' }}>
-          ⚓ &nbsp; SIRÁLY REGATTA
-        </div>
-        <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: 900, color: 'var(--foreground)', marginBottom: '8px' }}>
-          KÉSZEN ÁLLSZ?
-        </h2>
-        <p style={{ fontFamily: 'var(--font-sans)', fontSize: '14px', color: 'var(--muted-foreground)', marginBottom: '32px' }}>
-          A tenger nem ígér könnyű szelet. Csak lehetőségeket.
-        </p>
-        <button onClick={() => router.push('/kikoto')} style={{
-          background: '#d25c1c', color: '#fdf9e0',
-          border: 'none', borderRadius: '4px', padding: '16px 48px',
-          fontFamily: 'var(--font-heading)', fontWeight: 700,
-          fontSize: '15px', letterSpacing: '3px', cursor: 'pointer',
-        }}>
-          BELÉPÉS A KIKÖTŐBE →
-        </button>
-      </div>
+      </section>
     </div>
   )
 }

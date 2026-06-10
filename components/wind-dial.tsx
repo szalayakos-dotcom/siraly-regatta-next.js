@@ -77,100 +77,97 @@ export function WindDial() {
   if (!mounted) return null
 
   return (
-    <Panel title="Wind & Heading" code="WX-1" bodyClassName="flex flex-col items-center gap-3">
-      <div className="relative aspect-square w-full" style={{ maxWidth: "min(100%, 340px)" }}>
-        <svg viewBox="0 0 200 200" className="h-full w-full">
-          <defs>
-            <radialGradient id="dialFace" cx="50%" cy="42%" r="65%">
-              <stop offset="0%" stopColor="var(--card)" />
-              <stop offset="100%" stopColor="var(--muted)" />
-            </radialGradient>
-          </defs>
+    <Panel title="Szél & Irány" code="WX-1" bodyClassName="flex flex-col items-center gap-3">
+      {/* Süllyesztett sárgaréz műszerház üvegdómmal */}
+      <div className="gauge-housing aspect-square w-full" style={{ maxWidth: "min(100%, 320px)" }}>
+        <div className="gauge-face">
+          <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full">
+            {/* No-go zone */}
+            <path
+              d={`M 100 100 L ${polar(trueWindDir - noGoHalfAngle, 78).join(' ')} ${arcSeg(trueWindDir - noGoHalfAngle, trueWindDir + noGoHalfAngle, 78)} Z`}
+              fill="oklch(0.6 0.17 42 / 0.12)" stroke="oklch(0.6 0.17 42 / 0.35)"
+              strokeWidth="0.5" strokeDasharray="2 2"
+            />
 
-          <circle cx="100" cy="100" r="96" className="fill-none stroke-border" strokeWidth="1.5"/>
-          <circle cx="100" cy="100" r="90" fill="url(#dialFace)" className="stroke-border" strokeWidth="0.75"/>
+            {/* Ticks */}
+            {ticks.map((deg) => {
+              const major = deg % 30 === 0
+              const mid = deg % 10 === 0
+              const [x1, y1] = polar(deg, major ? 78 : mid ? 82 : 85)
+              const [x2, y2] = polar(deg, 89)
+              return (
+                <line key={deg} x1={x1} y1={y1} x2={x2} y2={y2}
+                  stroke={major ? 'oklch(0.86 0.04 88)' : 'oklch(0.6 0.04 230)'}
+                  strokeWidth={major ? 1.25 : mid ? 0.6 : 0.35}
+                />
+              )
+            })}
 
-          {/* No-go zone */}
-          <path
-            d={`M 100 100 L ${polar(trueWindDir - noGoHalfAngle, 78).join(' ')} ${arcSeg(trueWindDir - noGoHalfAngle, trueWindDir + noGoHalfAngle, 78)} Z`}
-            className="fill-accent/10 stroke-accent/30"
-            strokeWidth="0.5" strokeDasharray="2 2"
-          />
+            {/* Degree labels */}
+            {Array.from({ length: 12 }, (_, i) => i * 30).map((deg) => {
+              if (deg % 90 === 0) return null
+              const [x, y] = polar(deg, 70)
+              return (
+                <text key={deg} x={x} y={y + 2.5} textAnchor="middle"
+                  fill="oklch(0.6 0.04 230)" className="font-mono" fontSize="6">
+                  {deg}
+                </text>
+              )
+            })}
 
-          {/* Ticks */}
-          {ticks.map((deg) => {
-            const major = deg % 30 === 0
-            const mid = deg % 10 === 0
-            const [x1, y1] = polar(deg, major ? 78 : mid ? 82 : 85)
-            const [x2, y2] = polar(deg, 89)
-            return (
-              <line key={deg} x1={x1} y1={y1} x2={x2} y2={y2}
-                className={major ? 'stroke-foreground' : 'stroke-muted-foreground'}
-                strokeWidth={major ? 1.25 : mid ? 0.6 : 0.35}
-              />
-            )
-          })}
+            {/* Cardinals */}
+            {cardinals.map(([label, deg]) => {
+              const [x, y] = polar(deg, 70)
+              return (
+                <text key={label} x={x} y={y + 4} textAnchor="middle"
+                  fill={label === 'N' ? 'oklch(0.6 0.17 42)' : 'oklch(0.88 0.03 88)'}
+                  className="font-heading" fontSize={label === 'N' ? 12 : 11}
+                  fontWeight="bold">
+                  {label}
+                </text>
+              )
+            })}
 
-          {/* Degree labels */}
-          {Array.from({ length: 12 }, (_, i) => i * 30).map((deg) => {
-            if (deg % 90 === 0) return null
-            const [x, y] = polar(deg, 70)
-            return (
-              <text key={deg} x={x} y={y + 2.5} textAnchor="middle"
-                className="fill-muted-foreground font-mono text-[6px]">
-                {deg}
-              </text>
-            )
-          })}
+            {/* COG — szaggatott */}
+            <g transform={`rotate(${cog} 100 100)`}>
+              <line x1="100" y1="100" x2="100" y2="34"
+                stroke="oklch(0.62 0.1 200)" strokeWidth="1.25" strokeDasharray="4 3"/>
+              <circle cx="100" cy="34" r="3" fill="oklch(0.62 0.1 200)"/>
+            </g>
 
-          {/* Cardinals */}
-          {cardinals.map(([label, deg]) => {
-            const [x, y] = polar(deg, 70)
-            return (
-              <text key={label} x={x} y={y + 4} textAnchor="middle"
-                className={label === 'N'
-                  ? 'fill-accent font-heading text-[12px] font-bold'
-                  : 'fill-foreground font-heading text-[11px] font-semibold'
-                }>
-                {label}
-              </text>
-            )
-          })}
+            {/* HDG — fő mutató */}
+            <g transform={`rotate(${hdg} 100 100)`}>
+              <polygon points="100,30 93,104 107,104" fill="oklch(0.92 0.03 88)"/>
+              <polygon points="100,170 96,100 104,100" fill="oklch(0.55 0.03 235)"/>
+            </g>
 
-          {/* COG — szaggatott */}
-          <g transform={`rotate(${cog} 100 100)`}>
-            <line x1="100" y1="100" x2="100" y2="20"
-              className="stroke-secondary" strokeWidth="1.25" strokeDasharray="4 3"/>
-            <circle cx="100" cy="20" r="3" className="fill-secondary"/>
-          </g>
+            {/* True wind */}
+            <g transform={`rotate(${trueWindDir} 100 100)`}>
+              <line x1="100" y1="100" x2="100" y2="40" stroke="oklch(0.66 0.18 42)" strokeWidth="2.75"/>
+              <polygon points="100,34 92,50 108,50" fill="oklch(0.66 0.18 42)"/>
+            </g>
 
-          {/* HDG — fő mutató */}
-          <g transform={`rotate(${hdg} 100 100)`}>
-            <polygon points="100,16 92,108 108,108" className="fill-foreground"/>
-            <polygon points="100,184 95,100 105,100" className="fill-muted-foreground/60"/>
-            <circle cx="100" cy="16" r="2.5" className="fill-background stroke-foreground" strokeWidth="1"/>
-          </g>
+            {/* Apparent wind */}
+            <g transform={`rotate(${appWindDir} 100 100)`}>
+              <line x1="100" y1="100" x2="100" y2="48"
+                stroke="oklch(0.66 0.18 42 / 0.55)" strokeWidth="1.5" strokeDasharray="3 2"/>
+            </g>
 
-          {/* True wind */}
-          <g transform={`rotate(${trueWindDir} 100 100)`}>
-            <line x1="100" y1="100" x2="100" y2="30" className="stroke-accent" strokeWidth="2.75"/>
-            <polygon points="100,24 92,40 108,40" className="fill-accent"/>
-          </g>
+            {/* Központi LCD-betét — szél kn + irány */}
+            <foreignObject x="64" y="80" width="72" height="40">
+              <div className="lcd-screen flex h-full w-full flex-col items-center justify-center leading-none">
+                <span className="text-[15px] font-bold tracking-tight">{trueWindSpd}<span className="text-[8px]"> kn</span></span>
+                <span className="text-[8px] opacity-80">{trueWindDir}° {dirLabel(trueWindDir)}</span>
+              </div>
+            </foreignObject>
 
-          {/* Apparent wind */}
-          <g transform={`rotate(${appWindDir} 100 100)`}>
-            <line x1="100" y1="100" x2="100" y2="40"
-              className="stroke-accent/55" strokeWidth="1.5" strokeDasharray="3 2"/>
-            <polygon points="100,34 94,46 106,46" className="fill-none stroke-accent/70" strokeWidth="1"/>
-          </g>
+            {/* Lubber line */}
+            <polygon points="100,8 96,17 104,17" fill="oklch(0.66 0.18 42)"/>
 
-          {/* Hub */}
-          <circle cx="100" cy="100" r="6" className="fill-card stroke-foreground" strokeWidth="1.25"/>
-          <circle cx="100" cy="100" r="2" className="fill-foreground"/>
-
-          {/* Lubber line */}
-          <polygon points="100,4 96,12 104,12" className="fill-accent"/>
-        </svg>
+            {/* Üvegdóm csillanás */}
+          </svg>
+          <div className="glass-dome" />
+        </div>
       </div>
 
       {/* Jelmagyarázat */}
@@ -178,8 +175,8 @@ export function WindDial() {
         {[
           ['HDG', `${hdg}°`, 'bg-foreground'],
           ['COG', `${Math.round(cog)}°`, 'bg-secondary'],
-          ['TWD', `${trueWindDir}°`, 'bg-accent'],
-          ['AWD', `${appWindDir}°`, 'bg-accent/55'],
+          ['TWD', `${trueWindDir}°`, 'bg-primary'],
+          ['AWD', `${appWindDir}°`, 'bg-primary/55'],
         ].map(([label, value, dot]) => (
           <div key={label} className="flex items-center gap-1.5">
             <span className={`inline-block h-2 w-2 rounded-full ${dot}`} aria-hidden/>
@@ -189,21 +186,26 @@ export function WindDial() {
         ))}
       </div>
 
-      {/* Digitális kijelzők */}
-      <div className="grid w-full grid-cols-4 gap-px overflow-hidden rounded-sm border border-border bg-border">
+      {/* LCD műszer-kijelzők */}
+      <div className="grid w-full grid-cols-4 gap-1.5">
         {[
           ['TWS', `${trueWindSpd}`, 'kn'],
           ['AWS', `${appWindSpd}`, 'kn'],
           ['Gust', `${gusts}`, 'kn'],
           ['SOG', `${sog}`, 'kn'],
         ].map(([label, value, unit]) => (
-          <div key={label} className="bg-card px-1.5 py-2 text-center">
-            <p className="label-caps text-[8px] text-muted-foreground">{label}</p>
-            <p className="font-heading text-base font-semibold leading-none text-foreground">{value}</p>
-            <p className="font-mono text-[7px] text-muted-foreground">{unit}</p>
+          <div key={label} className="lcd-screen px-1 py-1.5 text-center">
+            <p className="label-caps text-[7px] opacity-70">{label}</p>
+            <p className="text-base font-bold leading-none">{value}</p>
+            <p className="text-[7px] opacity-70">{unit}</p>
           </div>
         ))}
       </div>
     </Panel>
   )
+}
+
+function dirLabel(deg: number) {
+  const dirs = ['É','ÉK','K','DK','D','DNy','Ny','ÉNy']
+  return dirs[Math.round(deg / 45) % 8]
 }

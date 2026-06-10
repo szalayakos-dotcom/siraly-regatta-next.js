@@ -5,7 +5,7 @@ import { Sidebar } from '@/components/sidebar'
 import { useEffect, useState, useRef } from 'react'
 import { getPocketBase } from '@/lib/pocketbase'
 import { useRouter } from 'next/navigation'
-import { Flag, Ship, Anchor, Trophy, Clock, Calendar, Wind, Users, Send, ChevronRight } from 'lucide-react'
+import { Flag, Ship, Anchor, Trophy, Calendar, Wind, Users, Send, ChevronRight, Radio, Medal } from 'lucide-react'
 import { kmhToKnots } from '@/lib/units'
 
 interface Race {
@@ -44,7 +44,6 @@ function useElapsed(start?: string) {
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
 }
 
-
 function AuthModal({ mode, onClose, onSuccess }: { mode: 'login'|'register', onClose: () => void, onSuccess: (name: string) => void }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -72,35 +71,38 @@ function AuthModal({ mode, onClose, onSuccess }: { mode: 'login'|'register', onC
   }
 
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:1000, background:'rgba(26,42,58,0.85)', display:'flex', alignItems:'center', justifyContent:'center' }}
-      onClick={onClose}>
-      <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:'6px', padding:'28px', width:'320px', maxWidth:'90vw' }}
-        onClick={e => e.stopPropagation()}>
-        <h2 className="font-heading text-lg font-bold text-foreground mb-4">
-          {mode === 'login' ? 'Bejelentkezés' : 'Regisztráció'}
-        </h2>
-        <div className="space-y-3">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-foreground/85 px-4" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-lg border border-border bg-card p-7 shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="mb-5 flex items-center gap-2">
+          <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Anchor className="size-4" strokeWidth={2} />
+          </div>
+          <h2 className="font-heading text-xl font-bold text-foreground">
+            {mode === 'login' ? 'Bejelentkezés' : 'Regisztráció'}
+          </h2>
+        </div>
+        <div className="flex flex-col gap-3">
           {mode === 'register' && (
             <div>
-              <label className="label-caps text-[9px] text-muted-foreground block mb-1">Megjelenített név</label>
+              <label className="label-caps mb-1 block text-[9px] text-muted-foreground">Megjelenített név</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="Kapitány neve"
-                className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm outline-none focus:border-secondary"/>
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-secondary"/>
             </div>
           )}
           <div>
-            <label className="label-caps text-[9px] text-muted-foreground block mb-1">Email</label>
+            <label className="label-caps mb-1 block text-[9px] text-muted-foreground">Email</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com"
-              className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm outline-none focus:border-secondary"/>
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-secondary"/>
           </div>
           <div>
-            <label className="label-caps text-[9px] text-muted-foreground block mb-1">Jelszó</label>
+            <label className="label-caps mb-1 block text-[9px] text-muted-foreground">Jelszó</label>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••"
               onKeyDown={e => e.key === 'Enter' && submit()}
-              className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm outline-none focus:border-secondary"/>
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-secondary"/>
           </div>
           {err && <p className="text-xs text-destructive">{err}</p>}
           <button onClick={submit} disabled={loading}
-            className="w-full rounded-sm bg-foreground py-2 font-heading text-sm font-semibold text-background hover:bg-secondary transition-colors disabled:opacity-50">
+            className="mt-1 w-full rounded-md bg-primary py-2.5 font-heading text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50">
             {loading ? 'Betöltés...' : mode === 'login' ? 'Bejelentkezés' : 'Regisztráció'}
           </button>
         </div>
@@ -160,7 +162,7 @@ export default function KikotoPage() {
           perPage: 50,
         })
         setChatMsgs([
-          { id: 'sys', user: 'Rendszer', text: 'Üdv a kikötőben! ⚓', time: '', isSystem: true },
+          { id: 'sys', user: 'Rendszer', text: 'Üdv a kikötőben!', time: '', isSystem: true },
           ...msgs.map(msgToChat),
         ])
       } catch {}
@@ -221,6 +223,8 @@ export default function KikotoPage() {
         if (segs.length) {
           setWindSpeed(Math.round(kmhToKnots(segs[0].wind_speed)*10)/10)
           setWindDir(segs[0].wind_dir)
+        } else {
+          setWindSpeed(0)
         }
       } catch (e) {}
       try {
@@ -230,7 +234,6 @@ export default function KikotoPage() {
         const sorted = positions.sort((a: any, b: any) =>
           (b.current_cp_index||0)-(a.current_cp_index||0) || (b.current_speed_kmh||0)-(a.current_speed_kmh||0)
         )
-        // Nevek betöltése
         const playerIds = [...new Set(sorted.map((p: any) => p.player_id).filter(Boolean))]
         const nameMap: Record<string, string> = {}
         await Promise.all(playerIds.map(async (pid: any) => {
@@ -258,10 +261,10 @@ export default function KikotoPage() {
       const L = (await import('leaflet')).default
       await import('leaflet/dist/leaflet.css')
       const map = L.map(mapRef.current!, { center: [46.88,17.78], zoom: 11, zoomControl: true, attributionControl: false })
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { opacity: 0.85 }).addTo(map)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { opacity: 0.9 }).addTo(map)
       mapInstanceRef.current = map
       setTimeout(() => map.invalidateSize(), 300)
-      if (selectedRace.course_id) {
+      if (selectedRace?.course_id) {
         try {
           const pb = getPocketBase()
           const course = await pb.collection('courses').getOne(selectedRace.course_id)
@@ -287,7 +290,6 @@ export default function KikotoPage() {
           const positions = await pb.collection('race_positions').getFullList({ filter: `race_id="${selectedRace!.id}"` })
           markersRef.current.forEach(m => m.remove()); markersRef.current = []
           const myId = pb.authStore.record?.id
-          // Nevek és hajó adatok betöltése tooltiphez
           const sorted = [...positions].sort((a: any, b: any) =>
             (b.cp_index||0)-(a.cp_index||0) || (b.speed_kmh||0)-(a.speed_kmh||0)
           )
@@ -318,7 +320,7 @@ export default function KikotoPage() {
             const speedKn = Math.round((pos.speed_kmh || 0) * 0.539957 * 10) / 10
             const tooltipHtml = `
               <div style="font-family:sans-serif;min-width:140px;line-height:1.5">
-                <div style="font-weight:700;font-size:13px;margin-bottom:4px">${isMine ? '⛵ Te' : '⛵ ' + info.name}</div>
+                <div style="font-weight:700;font-size:13px;margin-bottom:4px">${isMine ? 'Te' : info.name}</div>
                 <div style="font-size:11px;color:#666">${info.boatName} · ${info.boatClass}</div>
                 <div style="font-size:11px;color:#666">${info.boatType}</div>
                 <div style="font-size:11px;margin-top:4px">
@@ -328,7 +330,7 @@ export default function KikotoPage() {
                 </div>
               </div>`
             const icon = L.divIcon({
-              html: `<div style="width:${sz}px;height:${sz}px;background:${isMine?'#c42b1c':'#2a6a7a'};border:2px solid ${isMine?'#c8a030':'rgba(255,255,255,0.5)'};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${isMine?16:12}px;box-shadow:0 2px 6px rgba(0,0,0,0.4)">⛵</div>`,
+              html: `<div style="width:${sz}px;height:${sz}px;background:${isMine?'#c42b1c':'#2a6a7a'};border:2px solid ${isMine?'#c8a030':'rgba(255,255,255,0.6)'};border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.4)"><svg xmlns="http://www.w3.org/2000/svg" width="${isMine?16:12}" height="${isMine?16:12}" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"/><path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/><path d="M12 10v4"/><path d="M12 2v3"/></svg></div>`,
               className:'', iconAnchor:[sz/2,sz/2],
             })
             const marker = L.marker([pos.lat||46.88,pos.lng||17.78],{icon}).addTo(map)
@@ -365,7 +367,6 @@ export default function KikotoPage() {
         text,
       })
     } catch (e) {
-      // fallback: lokálisan adjuk hozzá
       const now = new Date()
       setChatMsgs(prev => [...prev, {
         id: Date.now().toString(), user: username || 'Vendég', text,
@@ -374,19 +375,17 @@ export default function KikotoPage() {
     }
   }
 
-
   const [realWeather, setRealWeather] = useState<{temp:number,desc:string,wind:number,windDir:number,icon:string}|null>(null)
 
   useEffect(() => {
     if (!mounted) return
-    // Balaton koordináta: Siófok
     fetch(`https://api.openweathermap.org/data/2.5/weather?lat=46.9&lon=18.05&appid=045a2be73e0c8aa4aa710a14a13d45d0&units=metric&lang=hu`)
       .then(r => r.json())
       .then(d => {
         setRealWeather({
           temp: Math.round(d.main?.temp || 0),
           desc: d.weather?.[0]?.description || '',
-          wind: Math.round((d.wind?.speed || 0) * 1.944 * 10) / 10, // m/s -> kn
+          wind: Math.round((d.wind?.speed || 0) * 1.944 * 10) / 10,
           windDir: d.wind?.deg || 0,
           icon: d.weather?.[0]?.icon || '',
         })
@@ -406,231 +405,305 @@ export default function KikotoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <div className="flex-1 min-w-0">
-      {authModal && (
-        <AuthModal mode={authModal} onClose={() => setAuthModal(null)} onSuccess={handleAuthSuccess}/>
-      )}
-      {/* Fejléc */}
-      <header className="border-b border-border bg-card sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-4">
-            <div>
-              <h1 className="font-heading text-xl font-black text-foreground tracking-wide">SIRÁLY REGATTA</h1>
-              <p className="label-caps text-[8px] text-muted-foreground">KIKÖTŐ</p>
+      <div className="min-w-0 flex-1">
+        {authModal && (
+          <AuthModal mode={authModal} onClose={() => setAuthModal(null)} onSuccess={handleAuthSuccess}/>
+        )}
+
+        {/* Fejléc */}
+        <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6">
+            <div className="flex items-center gap-3">
+              <div className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground md:hidden">
+                <Anchor className="size-5" strokeWidth={2} />
+              </div>
+              <div>
+                <h1 className="font-heading text-lg font-black leading-none tracking-wide text-foreground">KIKÖTŐ</h1>
+                <p className="label-caps mt-1 text-[8px] text-muted-foreground">Verseny-hub · Balaton</p>
+              </div>
             </div>
-            {(windSpeed > 0 || realWeather) && (
-              <div className="flex items-center gap-2 rounded-sm border border-border bg-background px-3 py-1.5">
-                <Wind className="size-3.5 text-muted-foreground" strokeWidth={1.75}/>
-                {windSpeed > 0 ? (
-                  <>
-                    <span className="font-heading text-sm font-semibold">{windSpeed} kn</span>
-                    <span className="text-xs text-muted-foreground">{dirLabel(windDir)} {windDir}°</span>
-                    <span className="label-caps text-[8px] text-secondary ml-1">verseny</span>
-                  </>
-                ) : realWeather ? (
-                  <>
-                    <span className="font-heading text-sm font-semibold">{realWeather.wind} kn</span>
-                    <span className="text-xs text-muted-foreground">{dirLabel(realWeather.windDir)}</span>
-                    <span className="text-xs text-muted-foreground">·</span>
-                    <span className="text-xs text-muted-foreground">{realWeather.temp}°C</span>
-                    <span className="text-xs text-muted-foreground">{realWeather.desc}</span>
-                  </>
-                ) : null}
-              </div>
-            )}
-            {races.length > 1 && (
-              <div className="flex gap-1.5">
-                {races.map(r => (
-                  <button key={r.id} onClick={() => setSelectedRace(r)}
-                    className={`rounded-sm border px-3 py-1.5 font-heading text-xs font-semibold transition-all ${selectedRace?.id===r.id?'border-secondary bg-secondary/15 text-secondary':'border-border text-muted-foreground'}`}>
-                    {r.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {isLoggedIn ? (
-              <>
-                <span className="font-heading text-sm font-semibold text-foreground">{username}</span>
-                <span className="label-caps text-[9px] px-2 py-1 rounded-sm bg-secondary/15 text-secondary">{credits} kr</span>
-                <button onClick={() => router.push('/dashboard')}
-                  className="flex items-center gap-1.5 rounded-sm bg-foreground px-3 py-1.5 font-heading text-xs font-semibold text-background hover:bg-secondary transition-colors">
-                  Fedélzet <ChevronRight className="size-3"/>
-                </button>
-                <button onClick={() => { getPocketBase().authStore.clear(); setIsLoggedIn(false); setUsername(''); setCredits(0) }}
-                  className="rounded-sm border border-border px-3 py-1.5 font-heading text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
-                  Kilépés
-                </button>
-              </>
-            ) : (
-              <>
-              <button onClick={() => setAuthModal("login")}
-                className="rounded-sm border border-border px-3 py-1.5 font-heading text-sm font-semibold text-foreground hover:bg-muted transition-colors">
-                Bejelentkezés
-              </button>
-              <button onClick={() => setAuthModal("register")}
-                className="rounded-sm bg-foreground px-3 py-1.5 font-heading text-sm font-semibold text-background hover:bg-secondary transition-colors">
-                Regisztráció
-              </button>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {!selectedRace ? (
-          <div className="rounded-sm border border-border bg-card p-12 text-center">
-            <Anchor className="size-10 text-muted-foreground mx-auto mb-3"/>
-            <p className="font-heading text-lg font-semibold text-foreground mb-1">Nincs aktív verseny</p>
-            <p className="text-sm text-muted-foreground">Hamarosan érkezik a következő kiírás!</p>
-          </div>
-        ) : (
-          <div>
-            {/* Poszter banner */}
-            {selectedRace.poster && (
-              <div className="rounded-sm border border-border overflow-hidden mb-4" style={{ aspectRatio: '4/1' }}>
-                <img
-                  src={`http://127.0.0.1:8090/api/files/races/${selectedRace.id}/${selectedRace.poster}`}
-                  alt={selectedRace.name}
-                  style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center top' }}
-                />
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* BAL OSZLOP */}
-              <div className="space-y-4">
-                {/* Verseny info */}
-                <div className="rounded-sm border border-border bg-card p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Flag className="size-4 text-accent" strokeWidth={2}/>
-                    <h2 className="font-heading text-base font-bold text-foreground">{selectedRace.name}</h2>
-                    {isActive && <span className="label-caps text-[8px] px-1.5 py-0.5 rounded-sm bg-green-500/15 text-green-600 animate-pulse">● ÉLŐ</span>}
-                  </div>
-                  {selectedRace.description && <p className="text-xs text-muted-foreground mb-3">{selectedRace.description}</p>}
-                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mb-3">
-                    {selectedRace.scheduled_start && (
-                      <span className="flex items-center gap-1">
-                        <Calendar className="size-3"/>{new Date(selectedRace.scheduled_start).toLocaleString('hu-HU')}
-                      </span>
-                    )}
-                    {selectedRace.entry_fee ? (
-                      <span className="text-secondary font-semibold">{selectedRace.entry_fee} kr</span>
-                    ) : <span className="text-secondary">Ingyenes</span>}
-                  </div>
-
-                  {isStarted ? (
-                    <div className="rounded-sm bg-green-500/10 border border-green-500/20 px-3 py-2 mb-3">
-                      <p className="label-caps text-[8px] text-green-600 mb-1">Verseny folyamatban</p>
-                      <p className="font-heading text-xl font-black text-foreground">{elapsed}</p>
-                    </div>
-                  ) : selectedRace.scheduled_start && !countdown.done ? (
-                    <div className="rounded-sm border border-border bg-background/60 px-3 py-2 mb-3">
-                      <p className="label-caps text-[8px] text-muted-foreground mb-2">Rajtig</p>
-                      <div className="flex gap-3">
-                        {[['NAP',countdown.d],['ÓRA',countdown.h],['PERC',countdown.m],['MP',countdown.s]].map(([l,v]) => (
-                          <div key={String(l)} className="text-center">
-                            <div className="font-heading text-xl font-black text-foreground leading-none">{String(v).padStart(2,'0')}</div>
-                            <div className="label-caps text-[7px] text-muted-foreground mt-0.5">{l}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+            <div className="flex items-center gap-2">
+              {(windSpeed > 0 || realWeather) && (
+                <div className="hidden items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 sm:flex">
+                  <Wind className="size-3.5 text-muted-foreground" strokeWidth={1.75}/>
+                  {windSpeed > 0 ? (
+                    <>
+                      <span className="font-heading text-sm font-semibold text-foreground">{windSpeed} kn</span>
+                      <span className="text-xs text-muted-foreground">{dirLabel(windDir)} {windDir}°</span>
+                      <span className="label-caps ml-1 text-[8px] text-secondary">verseny</span>
+                    </>
+                  ) : realWeather ? (
+                    <>
+                      <span className="font-heading text-sm font-semibold text-foreground">{realWeather.wind} kn</span>
+                      <span className="text-xs text-muted-foreground">{dirLabel(realWeather.windDir)}</span>
+                      <span className="text-xs text-muted-foreground">· {realWeather.temp}°C</span>
+                    </>
                   ) : null}
-
-                  <button onClick={() => joinRace(selectedRace)}
-                    className={`w-full flex items-center justify-center gap-2 rounded-sm px-4 py-2 font-heading text-sm font-semibold transition-colors ${myRaces.includes(selectedRace.id)?'bg-secondary text-secondary-foreground hover:bg-secondary/80':'bg-foreground text-background hover:bg-secondary'}`}>
-                    {myRaces.includes(selectedRace.id) ? <><Ship className="size-4"/>Fedélzetre →</> : <><Flag className="size-4"/>Nevezés</>}
+                </div>
+              )}
+              {isLoggedIn ? (
+                <>
+                  <span className="label-caps rounded-md bg-secondary/15 px-2 py-1 text-[9px] text-secondary">{credits} kr</span>
+                  <button onClick={() => router.push('/dashboard')}
+                    className="flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 font-heading text-xs font-semibold text-background transition-colors hover:bg-secondary">
+                    Fedélzet <ChevronRight className="size-3"/>
                   </button>
-                </div>
+                  <button onClick={() => { getPocketBase().authStore.clear(); setIsLoggedIn(false); setUsername(''); setCredits(0) }}
+                    className="rounded-md border border-border px-3 py-1.5 font-heading text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground">
+                    Kilépés
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => setAuthModal("login")}
+                    className="rounded-md border border-border px-3 py-1.5 font-heading text-sm font-semibold text-foreground transition-colors hover:bg-muted">
+                    Bejelentkezés
+                  </button>
+                  <button onClick={() => setAuthModal("register")}
+                    className="rounded-md bg-foreground px-3 py-1.5 font-heading text-sm font-semibold text-background transition-colors hover:bg-secondary">
+                    Regisztráció
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
 
-                {/* Nyeremények */}
-                <div className="rounded-sm border border-border bg-card p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Trophy className="size-4 text-muted-foreground" strokeWidth={1.75}/>
-                    <p className="font-heading text-sm font-semibold text-foreground">Nyeremények</p>
-                  </div>
-                  {[{pos:'🥇 1.',kr:500,xp:1000},{pos:'🥈 2.',kr:300,xp:600},{pos:'🥉 3.',kr:150,xp:300}].map(({pos,kr,xp}) => (
-                    <div key={pos} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
-                      <span className="font-heading text-sm font-semibold text-foreground">{pos} hely</span>
-                      <div className="flex gap-3 text-xs">
-                        <span className="text-secondary font-semibold">{kr} kr</span>
-                        <span className="text-muted-foreground">{xp} XP</span>
-                      </div>
+          {/* Verseny-választó fülek */}
+          {races.length > 1 && (
+            <div className="mx-auto max-w-7xl px-4 pb-3 sm:px-6">
+              <div className="flex flex-wrap gap-1.5">
+                {races.map(r => {
+                  const live = r.status === 'active'
+                  const sel = selectedRace?.id === r.id
+                  return (
+                    <button key={r.id} onClick={() => setSelectedRace(r)}
+                      className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 font-heading text-xs font-semibold transition-all ${sel?'border-secondary bg-secondary/15 text-secondary':'border-border text-muted-foreground hover:text-foreground'}`}>
+                      {live && <span className="size-1.5 animate-pulse rounded-full bg-primary" />}
+                      {r.name}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </header>
+
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+          {!selectedRace ? (
+            <div className="rounded-lg border border-border bg-card p-12 text-center">
+              <Anchor className="mx-auto mb-3 size-10 text-muted-foreground"/>
+              <p className="mb-1 font-heading text-lg font-semibold text-foreground">Nincs aktív verseny</p>
+              <p className="text-sm text-muted-foreground">Hamarosan érkezik a következő kiírás!</p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {/* ADAPTÍV VERSENY-FEJ — countdown vagy élő futamidő */}
+              <RaceHero
+                race={selectedRace}
+                isActive={!!isActive}
+                isStarted={!!isStarted}
+                elapsed={elapsed}
+                countdown={countdown}
+                joined={myRaces.includes(selectedRace.id)}
+                onJoin={() => joinRace(selectedRace)}
+                topStanding={standings[0]}
+              />
+
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+                {/* Térkép + állás */}
+                <div className="space-y-5 lg:col-span-2">
+                  <div className="relative isolate z-0 overflow-hidden rounded-lg border border-border bg-card">
+                    <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+                      <p className="font-heading text-sm font-semibold text-foreground">Pálya · élő pozíciók</p>
+                      {isActive && (
+                        <span className="label-caps flex items-center gap-1 text-[8px] text-primary">
+                          <Radio className="size-3 animate-pulse" /> élő
+                        </span>
+                      )}
                     </div>
-                  ))}
+                    <div ref={mapRef} className="h-[420px] w-full"/>
+                  </div>
+
+                  <div className="rounded-lg border border-border bg-card p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Users className="size-4 text-muted-foreground" strokeWidth={1.75}/>
+                      <p className="font-heading text-sm font-semibold text-foreground">Versenyállás</p>
+                      {isActive && <span className="label-caps ml-auto flex items-center gap-1 text-[8px] text-primary"><Radio className="size-3 animate-pulse"/>élő</span>}
+                    </div>
+                    {standings.length === 0 ? (
+                      <p className="py-6 text-center text-xs text-muted-foreground">
+                        {isActive ? 'Adatok betöltése...' : 'A verseny indulása után jelenik meg az állás.'}
+                      </p>
+                    ) : (
+                      <div className="space-y-1">
+                        {standings.map(s => {
+                          const medal = s.pos <= 3
+                          const medalColor = s.pos === 1 ? 'text-[var(--gold)]' : s.pos === 2 ? 'text-muted-foreground' : 'text-primary'
+                          return (
+                            <div key={s.playerId} className="flex items-center gap-3 rounded-md px-2 py-2 odd:bg-muted/40">
+                              <span className={`flex w-6 justify-center font-heading text-base font-black ${medal ? medalColor : 'text-muted-foreground'}`}>
+                                {medal ? <Medal className="size-4" /> : s.pos}
+                              </span>
+                              <Ship className="size-3.5 shrink-0 text-secondary" strokeWidth={1.75} />
+                              <span className="flex-1 truncate font-heading text-sm font-semibold text-foreground">{s.name || 'Versenyző'}</span>
+                              <span className="text-xs text-muted-foreground">CP {s.cp}</span>
+                              <span className="font-heading text-sm font-semibold text-secondary">{s.speed} kn</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Chat */}
-                <div className="rounded-sm border border-border bg-card flex flex-col" style={{ height:'280px' }}>
-                  <div className="px-4 py-3 border-b border-border shrink-0">
-                    <p className="font-heading text-sm font-semibold text-foreground">Chat</p>
+                {/* Info, nyeremények, chat */}
+                <div className="space-y-5">
+                  <div className="rounded-lg border border-border bg-card p-4">
+                    <div className="mb-2 flex items-center gap-2">
+                      <Flag className="size-4 text-accent" strokeWidth={2}/>
+                      <h2 className="font-heading text-base font-bold text-foreground">{selectedRace.name}</h2>
+                    </div>
+                    {selectedRace.description && <p className="mb-3 text-xs leading-relaxed text-muted-foreground">{selectedRace.description}</p>}
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      {selectedRace.scheduled_start && (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="size-3"/>{new Date(selectedRace.scheduled_start).toLocaleString('hu-HU')}
+                        </span>
+                      )}
+                      {selectedRace.entry_fee ? (
+                        <span className="font-semibold text-secondary">{selectedRace.entry_fee} kr nevezés</span>
+                      ) : <span className="text-secondary">Ingyenes</span>}
+                    </div>
                   </div>
-                  <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1.5">
-                    {chatMsgs.map(msg => (
-                      <div key={msg.id} className="text-xs">
-                        <span className="font-semibold text-secondary mr-1">{msg.user}</span>
-                        {msg.time && <span className="text-muted-foreground text-[9px] mr-1">{msg.time}</span>}
-                        <span className="text-foreground">{msg.text}</span>
+
+                  <div className="rounded-lg border border-border bg-card p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Trophy className="size-4 text-muted-foreground" strokeWidth={1.75}/>
+                      <p className="font-heading text-sm font-semibold text-foreground">Nyeremények</p>
+                    </div>
+                    {[{pos:1,label:'1. hely',kr:500,xp:1000,c:'text-[var(--gold)]'},{pos:2,label:'2. hely',kr:300,xp:600,c:'text-muted-foreground'},{pos:3,label:'3. hely',kr:150,xp:300,c:'text-primary'}].map(({pos,label,kr,xp,c}) => (
+                      <div key={pos} className="flex items-center justify-between border-b border-border py-1.5 last:border-0">
+                        <span className="flex items-center gap-2 font-heading text-sm font-semibold text-foreground">
+                          <Medal className={`size-3.5 ${c}`} />{label}
+                        </span>
+                        <div className="flex gap-3 text-xs">
+                          <span className="font-semibold text-secondary">{kr} kr</span>
+                          <span className="text-muted-foreground">{xp} XP</span>
+                        </div>
                       </div>
                     ))}
-                    <div ref={chatEndRef}/>
                   </div>
-                  <div className="flex gap-2 p-3 border-t border-border shrink-0">
-                    <input value={chatInput} onChange={e => setChatInput(e.target.value)}
-                      onKeyDown={e => e.key==='Enter' && sendChat()}
-                      placeholder={isLoggedIn ? "Üzenet..." : "Jelentkezz be a chathez"}
-                      disabled={!isLoggedIn}
-                      className="flex-1 rounded-sm border border-border bg-background px-3 py-1.5 text-xs outline-none focus:border-secondary disabled:opacity-50"/>
-                    <button onClick={sendChat} disabled={!isLoggedIn}
-                      className="rounded-sm bg-foreground p-1.5 text-background hover:bg-secondary disabled:opacity-50">
-                      <Send className="size-3.5"/>
-                    </button>
-                  </div>
-                </div>
-              </div>
 
-              {/* KÖZÉP + JOBB */}
-              <div className="lg:col-span-2 space-y-4">
-                {/* Térkép */}
-                <div className="rounded-sm border border-border overflow-hidden" style={{ height:'400px', position:'sticky', top:'64px', zIndex:10 }}>
-                  <div ref={mapRef} style={{ width:'100%', height:'100%' }}/>
-                </div>
-
-                {/* Versenyállás */}
-                <div className="rounded-sm border border-border bg-card p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Users className="size-4 text-muted-foreground" strokeWidth={1.75}/>
-                    <p className="font-heading text-sm font-semibold text-foreground">Versenyállás</p>
-                    {isActive && <span className="label-caps text-[8px] px-1.5 py-0.5 rounded-sm bg-green-500/15 text-green-600 ml-auto">● ÉLŐ</span>}
-                  </div>
-                  {standings.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">
-                      {isActive ? 'Adatok betöltése...' : 'A verseny indulása után jelenik meg'}
-                    </p>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {standings.map(s => (
-                        <div key={s.playerId} className="flex items-center gap-3 py-1.5 border-b border-border last:border-0">
-                          <span className="font-heading text-base font-bold text-muted-foreground w-6 text-center">{s.pos}</span>
-                          <span className="flex-1 font-heading text-sm font-semibold text-foreground">⛵ {s.name || 'Versenyző'}</span>
-                          <span className="text-xs text-muted-foreground">CP {s.cp}</span>
-                          <span className="font-heading text-sm font-semibold text-secondary">{s.speed} kn</span>
+                  <div className="flex h-[320px] flex-col rounded-lg border border-border bg-card">
+                    <div className="shrink-0 border-b border-border px-4 py-3">
+                      <p className="font-heading text-sm font-semibold text-foreground">Kikötői chat</p>
+                    </div>
+                    <div className="flex-1 space-y-1.5 overflow-y-auto px-4 py-3">
+                      {chatMsgs.map(msg => (
+                        <div key={msg.id} className="text-xs leading-relaxed">
+                          {msg.isSystem ? (
+                            <span className="label-caps text-[9px] text-muted-foreground">{msg.text}</span>
+                          ) : (
+                            <>
+                              <span className="mr-1 font-semibold text-secondary">{msg.user}</span>
+                              {msg.time && <span className="mr-1 text-[9px] text-muted-foreground">{msg.time}</span>}
+                              <span className="text-foreground">{msg.text}</span>
+                            </>
+                          )}
                         </div>
                       ))}
+                      <div ref={chatEndRef}/>
                     </div>
-                  )}
+                    <div className="flex shrink-0 gap-2 border-t border-border p-3">
+                      <input value={chatInput} onChange={e => setChatInput(e.target.value)}
+                        onKeyDown={e => e.key==='Enter' && sendChat()}
+                        placeholder={isLoggedIn ? "Üzenet..." : "Jelentkezz be a chathez"}
+                        disabled={!isLoggedIn}
+                        className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs outline-none focus:border-secondary disabled:opacity-50"/>
+                      <button onClick={sendChat} disabled={!isLoggedIn}
+                        className="rounded-md bg-foreground p-1.5 text-background transition-colors hover:bg-secondary disabled:opacity-50">
+                        <Send className="size-3.5"/>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
+  )
+}
+
+/* ---- Adaptív verseny-fej: countdown (rajt előtt) vagy élő futamidő ---- */
+function RaceHero({
+  race, isActive, isStarted, elapsed, countdown, joined, onJoin, topStanding,
+}: {
+  race: Race; isActive: boolean; isStarted: boolean; elapsed: string
+  countdown: { d: number; h: number; m: number; s: number; done: boolean }
+  joined: boolean; onJoin: () => void; topStanding?: any
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-lg border border-border bg-foreground text-background">
+      <div className="absolute inset-0 bg-gradient-to-r from-foreground via-foreground/90 to-secondary/30" />
+      <div className="relative flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+        <div className="min-w-0">
+          <div className="mb-2 flex items-center gap-2">
+            {isActive ? (
+              <span className="label-caps flex items-center gap-1.5 rounded-md bg-primary px-2 py-1 text-[9px] text-primary-foreground">
+                <Radio className="size-3 animate-pulse" /> Verseny folyamatban
+              </span>
+            ) : (
+              <span className="label-caps rounded-md bg-background/15 px-2 py-1 text-[9px] text-background">
+                Közelgő futam
+              </span>
+            )}
+          </div>
+          <h2 className="font-heading text-2xl font-black leading-tight text-balance sm:text-3xl">{race.name}</h2>
+          {isActive ? (
+            topStanding ? (
+              <p className="mt-1 text-sm text-background/70">
+                Élen: <span className="font-semibold text-background">{topStanding.name}</span> · {topStanding.speed} kn
+              </p>
+            ) : (
+              <p className="mt-1 text-sm text-background/70">A mezőny vízen van — kövesd a térképen!</p>
+            )
+          ) : (
+            <p className="mt-1 text-sm text-background/70">{race.description || 'Készülj fel a rajtra.'}</p>
+          )}
+        </div>
+
+        {/* Időkijelző — adaptív */}
+        <div className="shrink-0">
+          {isStarted ? (
+            <div className="rounded-md border border-primary/40 bg-primary/15 px-5 py-3 text-center">
+              <p className="label-caps mb-1 text-[8px] text-background/70">Eltelt idő</p>
+              <p className="font-heading text-3xl font-black tabular-nums tracking-wider text-background">{elapsed}</p>
+            </div>
+          ) : !countdown.done ? (
+            <div className="rounded-md border border-background/15 bg-background/5 px-4 py-3">
+              <p className="label-caps mb-2 text-center text-[8px] text-background/70">Rajtig hátra</p>
+              <div className="flex gap-3">
+                {[['NAP',countdown.d],['ÓRA',countdown.h],['PERC',countdown.m],['MP',countdown.s]].map(([l,v]) => (
+                  <div key={String(l)} className="text-center">
+                    <div className="font-heading text-2xl font-black leading-none tabular-nums text-background">{String(v).padStart(2,'0')}</div>
+                    <div className="label-caps mt-1 text-[7px] text-background/60">{l}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <button onClick={onJoin}
+            className={`mt-3 flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 font-heading text-sm font-semibold transition-colors ${joined ? 'bg-secondary text-secondary-foreground hover:bg-secondary/80' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}>
+            {joined ? <><Ship className="size-4"/>Fedélzetre</> : <><Flag className="size-4"/>Nevezés a futamra</>}
+          </button>
+        </div>
       </div>
+    </div>
   )
 }

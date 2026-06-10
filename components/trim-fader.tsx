@@ -39,19 +39,19 @@ export function TrimFader({ label, value, onChange, disabled = false, height = 3
     window.addEventListener('touchend', end)
   }
 
-  const W = 40
+  const W = 54
   const cx = W / 2
-  const trackTop = 8
-  const trackBot = height - 32
+  const trackTop = 10
+  const trackBot = height - 38
   const trackH = trackBot - trackTop
   const rawKnobY = trackTop + trackH * (1 - value / 100)
-  const knobY = Math.max(trackTop + 9, Math.min(trackBot - 9, rawKnobY))
-  const color = disabled ? 'rgba(232,223,192,0.2)' : 'rgba(42,106,122,0.9)'
+  const knobR = 15
+  const knobY = Math.max(trackTop + knobR, Math.min(trackBot - knobR, rawKnobY))
 
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
-      opacity: disabled ? 0.25 : 1,
+      opacity: disabled ? 0.3 : 1,
       cursor: disabled ? 'not-allowed' : 'ns-resize',
       userSelect: 'none', flexShrink: 0,
     }}
@@ -61,60 +61,66 @@ export function TrimFader({ label, value, onChange, disabled = false, height = 3
       <svg width={W} height={height}>
         <defs>
           <linearGradient id={`fg-${label}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} />
-            <stop offset="100%" stopColor={color} stopOpacity="0.4" />
+            <stop offset="0%" stopColor="oklch(0.5 0.09 222)" />
+            <stop offset="100%" stopColor="oklch(0.4 0.07 222 / 0.4)" />
           </linearGradient>
-          <radialGradient id={`ball-${label}`} cx="35%" cy="30%" r="65%">
-            <stop offset="0%" stopColor="#e8f0f4" />
-            <stop offset="50%" stopColor="#a8b8c8" />
-            <stop offset="100%" stopColor="#4a5a6a" />
+          <radialGradient id={`ball-${label}`} cx="38%" cy="30%" r="68%">
+            <stop offset="0%" stopColor="oklch(0.78 0.18 30)" />
+            <stop offset="55%" stopColor="oklch(0.58 0.22 28)" />
+            <stop offset="100%" stopColor="oklch(0.4 0.18 28)" />
           </radialGradient>
-          <linearGradient id={`rod-${label}`} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#6a7a8a" />
-            <stop offset="40%" stopColor="#c8d4dc" />
-            <stop offset="100%" stopColor="#6a7a8a" />
-          </linearGradient>
         </defs>
 
-        {/* Sín teljes hosszban */}
+        {/* Süllyesztett sín — vastag mélyedés */}
+        <rect x={cx - 6} y={trackTop - 4} width={12} height={trackH + 8} rx="6"
+          fill="oklch(0.16 0.03 250)" stroke="oklch(0.4 0.04 248)" strokeWidth="0.75" />
+        {/* belső árnyék-sáv */}
         <rect ref={trackRef} x={cx - 3} y={trackTop} width={6} height={trackH}
-          rx="3" fill="rgba(232,223,192,0.07)" stroke="rgba(232,223,192,0.3)" strokeWidth="0.75" />
+          rx="3" fill="oklch(0.1 0.02 250)" />
 
-        {/* Aktív fill — kar alatt */}
-        <rect x={cx - 2} y={knobY + 10} width={4} height={Math.max(0, trackBot - knobY - 10)}
-          rx="2" fill={`url(#fg-${label})`} />
+        {/* Aktív fill — kar alatt (teal) */}
+        <rect x={cx - 3} y={knobY} width={6} height={Math.max(0, trackBot - knobY)}
+          rx="3" fill={`url(#fg-${label})`} />
 
         {/* 25/50/75 jelölők */}
         {[25, 50, 75].map(v => {
           const y = trackTop + trackH * (1 - v / 100)
-          return <line key={v} x1={cx - 7} y1={y} x2={cx + 7} y2={y}
-            stroke={v === 50 ? 'rgba(232,223,192,0.4)' : 'rgba(232,223,192,0.2)'}
-            strokeWidth={v === 50 ? 1 : 0.5} />
+          return <line key={v} x1={cx - 11} y1={y} x2={cx - 7} y2={y}
+            stroke={v === 50 ? 'oklch(0.7 0.04 90 / 0.55)' : 'oklch(0.7 0.04 90 / 0.3)'}
+            strokeWidth={v === 50 ? 1.2 : 0.6} />
+        })}
+        {[25, 50, 75].map(v => {
+          const y = trackTop + trackH * (1 - v / 100)
+          return <line key={`r${v}`} x1={cx + 7} y1={y} x2={cx + 11} y2={y}
+            stroke={v === 50 ? 'oklch(0.7 0.04 90 / 0.55)' : 'oklch(0.7 0.04 90 / 0.3)'}
+            strokeWidth={v === 50 ? 1.2 : 0.6} />
         })}
 
-        {/* Chrome rúd */}
-        <rect x={cx - 1.5} y={knobY + 10} width={3} height={Math.max(0, trackBot - knobY - 10)}
-          rx="1.5" fill={`url(#rod-${label})`} />
+        {/* Nagy piros markolatgömb */}
+        <g style={{ filter: 'drop-shadow(0 3px 5px oklch(0.12 0.02 250 / 0.6))' }}>
+          {/* nyak a sínbe */}
+          <rect x={cx - 2.5} y={knobY - 2} width={5} height={6} fill="oklch(0.35 0.03 250)" />
+          <circle cx={cx} cy={knobY} r={knobR} fill={`url(#ball-${label})`}
+            stroke="oklch(0.32 0.14 28)" strokeWidth="1" />
+          {/* fény-csillanás */}
+          <ellipse cx={cx - 4} cy={knobY - 5} rx={4} ry={2.8} fill="oklch(1 0 0 / 0.4)" />
+          {/* markolat-barázdák */}
+          <line x1={cx - 7} y1={knobY + 4} x2={cx + 7} y2={knobY + 4} stroke="oklch(0.35 0.16 28 / 0.5)" strokeWidth="0.75" />
+          <line x1={cx - 7} y1={knobY + 7} x2={cx + 7} y2={knobY + 7} stroke="oklch(0.35 0.16 28 / 0.5)" strokeWidth="0.75" />
+        </g>
 
-        {/* Gömb */}
-        <circle cx={cx} cy={knobY} r={9}
-          fill={`url(#ball-${label})`}
-          stroke="rgba(232,223,192,0.35)" strokeWidth="0.75"
-          style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }} />
-        <circle cx={cx - 3} cy={knobY - 3} r={2.5} fill="rgba(255,255,255,0.35)" />
-
-        {/* Érték */}
-        <text x={cx} y={height - 16} textAnchor="middle"
-          fill="rgba(232,223,192,0.7)" fontSize="9" fontFamily="monospace" fontWeight="600">
+        {/* Érték LCD-szerű */}
+        <text x={cx} y={height - 20} textAnchor="middle"
+          fill="oklch(0.82 0.14 162)" fontSize="11" fontFamily="var(--font-mono)" fontWeight="700"
+          style={{ filter: 'drop-shadow(0 0 3px oklch(0.7 0.14 162 / 0.6))' }}>
           {value}
         </text>
 
-        {/* Label forgatva */}
-        <text
-          x={cx} y={height - 4} textAnchor="middle"
-          fill="rgba(232,223,192,0.4)" fontSize="6" fontFamily="sans-serif"
+        {/* Label */}
+        <text x={cx} y={height - 6} textAnchor="middle"
+          fill="oklch(0.7 0.04 90 / 0.65)" fontSize="6.5" fontFamily="var(--font-sans)"
           style={{ textTransform: 'uppercase', letterSpacing: '1px' }}>
-          {label.slice(0, 6)}
+          {label.slice(0, 7)}
         </text>
       </svg>
     </div>

@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { getPocketBase } from '@/lib/pocketbase'
-import { Plus, Trash2, Edit2, Ship, Save, X } from 'lucide-react'
+import { Plus, Trash2, Edit2, Ship, Save, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Panel } from '@/components/panel'
 
 interface Boat {
   id: string
@@ -18,17 +19,17 @@ interface Boat {
 }
 
 const BOAT_CLASSES = [
-  { value: 'ys1', label: 'Ys.I',  desc: '1200–1800 kg' },
+  { value: 'ys1', label: 'Ys.I', desc: '1200–1800 kg' },
   { value: 'ys2', label: 'Ys.II', desc: '800–1200 kg' },
-  { value: 'ys3', label: 'Ys.III',desc: '400–800 kg' },
+  { value: 'ys3', label: 'Ys.III', desc: '400–800 kg' },
 ]
 
 interface User { id: string; name: string; email: string }
 
-
 async function resizeImage(file: File, maxW = 800, maxH = 600, quality = 0.82): Promise<File> {
   return new Promise((resolve) => {
     const img = new Image()
+    img.crossOrigin = 'anonymous'
     const url = URL.createObjectURL(file)
     img.onload = () => {
       URL.revokeObjectURL(url)
@@ -52,11 +53,11 @@ function BoatForm({ initial, users, onSave, onCancel }: {
   initial?: Partial<Boat>, users: User[],
   onSave: (data: any) => void, onCancel: () => void
 }) {
-  const [name, setName]           = useState(initial?.name || '')
-  const [cls, setCls]             = useState(initial?.class || 'ys1')
-  const [sailNum, setSailNum]     = useState(initial?.sail_number || '')
-  const [desc, setDesc]           = useState(initial?.description || '')
-  const [ownerId, setOwnerId]     = useState(initial?.owner_id || '')
+  const [name, setName] = useState(initial?.name || '')
+  const [cls, setCls] = useState(initial?.class || 'ys1')
+  const [sailNum, setSailNum] = useState(initial?.sail_number || '')
+  const [desc, setDesc] = useState(initial?.description || '')
+  const [ownerId, setOwnerId] = useState(initial?.owner_id || '')
   const [imgFile, setImgFile] = useState<File | null>(null)
   const [imgPreview, setImgPreview] = useState<string>(initial?.image ? `http://127.0.0.1:8090/api/files/boats/${initial.id}/${initial.image}` : '')
 
@@ -71,17 +72,16 @@ function BoatForm({ initial, users, onSave, onCancel }: {
           <label className="label-caps text-[9px] text-muted-foreground block mb-1">Hajó neve *</label>
           <input autoFocus value={name} onChange={e => setName(e.target.value)}
             placeholder="pl. Villám, Sirály..."
-            className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm outline-none focus:border-secondary"/>
+            className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
         </div>
         <div>
           <label className="label-caps text-[9px] text-muted-foreground block mb-1">Vitorlaszám</label>
           <input value={sailNum} onChange={e => setSailNum(e.target.value)}
             placeholder="pl. HUN-1234"
-            className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm outline-none focus:border-secondary"/>
+            className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm outline-none focus:border-secondary" />
         </div>
       </div>
 
-      {/* Osztály */}
       <div>
         <label className="label-caps text-[9px] text-muted-foreground block mb-2">Hajóosztály</label>
         <div className="flex gap-2">
@@ -100,7 +100,6 @@ function BoatForm({ initial, users, onSave, onCancel }: {
         </div>
       </div>
 
-      {/* Tulajdonos */}
       <div>
         <label className="label-caps text-[9px] text-muted-foreground block mb-1">Tulajdonos</label>
         <select value={ownerId} onChange={e => setOwnerId(e.target.value)}
@@ -112,12 +111,11 @@ function BoatForm({ initial, users, onSave, onCancel }: {
         </select>
       </div>
 
-      {/* Kép feltöltés */}
       <div>
         <label className="label-caps text-[9px] text-muted-foreground block mb-1">Hajó képe</label>
         <div className="flex items-center gap-3">
           {imgPreview && (
-            <img src={imgPreview} alt="preview" className="w-16 h-16 object-cover rounded-sm border border-border"/>
+            <img src={imgPreview || "/placeholder.svg"} alt="Hajó előnézeti képe" className="w-16 h-16 object-cover rounded-sm border border-border" />
           )}
           <input type="file" accept="image/*"
             onChange={async e => {
@@ -128,22 +126,21 @@ function BoatForm({ initial, users, onSave, onCancel }: {
                 setImgPreview(URL.createObjectURL(resized))
               }
             }}
-            className="flex-1 text-sm text-muted-foreground file:mr-3 file:rounded-sm file:border-0 file:bg-secondary/15 file:px-3 file:py-1 file:text-xs file:font-heading file:font-semibold file:text-secondary"/>
+            className="flex-1 text-sm text-muted-foreground file:mr-3 file:rounded-sm file:border-0 file:bg-secondary/15 file:px-3 file:py-1 file:text-xs file:font-heading file:font-semibold file:text-secondary" />
         </div>
       </div>
 
-      {/* Leírás */}
       <div>
         <label className="label-caps text-[9px] text-muted-foreground block mb-1">Leírás</label>
         <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={2}
           placeholder="Hajó jellemzői, különleges tulajdonságok..."
-          className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm outline-none focus:border-secondary resize-none"/>
+          className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm outline-none focus:border-secondary resize-none" />
       </div>
 
       <div className="flex gap-2">
         <button onClick={() => onSave({ name, class: cls, sail_number: sailNum, description: desc, owner_id: ownerId || null, _imgFile: imgFile })}
           className="flex-1 flex items-center justify-center gap-2 rounded-sm bg-secondary py-2 font-heading text-sm font-semibold text-secondary-foreground">
-          <Save className="size-4"/>{initial?.id ? 'Mentés' : 'Létrehozás'}
+          <Save className="size-4" />{initial?.id ? 'Mentés' : 'Létrehozás'}
         </button>
         <button onClick={onCancel}
           className="rounded-sm border border-border px-4 py-2 text-sm text-muted-foreground">
@@ -161,8 +158,9 @@ export default function BoatsPage() {
   const [showNew, setShowNew] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [msg, setMsg] = useState('')
+  const [msgErr, setMsgErr] = useState(false)
 
-  function flash(m: string) { setMsg(m); setTimeout(() => setMsg(''), 2500) }
+  function flash(m: string, err = false) { setMsg(m); setMsgErr(err); setTimeout(() => setMsg(''), 2500) }
 
   async function load() {
     setLoading(true)
@@ -188,9 +186,9 @@ export default function BoatsPage() {
       if (_imgFile) formData.append('image', _imgFile)
       await getPocketBase().collection('boats').create(formData)
       setShowNew(false)
-      flash('✓ Hajó létrehozva')
+      flash('Hajó létrehozva')
       load()
-    } catch (e) { flash('⚠ Hiba: ' + (e as any)?.message) }
+    } catch (e) { flash('Hiba: ' + (e as any)?.message, true) }
   }
 
   async function updateBoat(id: string, data: any) {
@@ -201,18 +199,18 @@ export default function BoatsPage() {
       if (_imgFile) formData.append('image', _imgFile)
       await getPocketBase().collection('boats').update(id, formData)
       setEditId(null)
-      flash('✓ Mentve')
+      flash('Mentve')
       load()
-    } catch (e) { flash('⚠ Hiba') }
+    } catch (e) { flash('Hiba', true) }
   }
 
   async function deleteBoat(id: string) {
     if (!confirm('Biztosan törlöd?')) return
     try {
       await getPocketBase().collection('boats').delete(id)
-      flash('✓ Törölve')
+      flash('Törölve')
       load()
-    } catch (e) { flash('⚠ Hiba') }
+    } catch (e) { flash('Hiba', true) }
   }
 
   function getOwnerName(ownerId?: string) {
@@ -224,94 +222,111 @@ export default function BoatsPage() {
   const classInfo = (cls: string) => BOAT_CLASSES.find(b => b.value === cls)
 
   return (
-    <div className="p-4 lg:p-6 space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <h1 className="font-heading text-xl font-bold text-foreground">Hajók</h1>
-          <p className="label-caps text-[9px] text-muted-foreground">{boats.length} hajó</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {msg && <span className="label-caps text-[10px] text-secondary bg-secondary/10 px-2 py-1 rounded-sm">{msg}</span>}
-          <button onClick={() => { setShowNew(v => !v); setEditId(null) }}
-            className="flex items-center gap-2 rounded-sm bg-foreground px-3 py-2 font-heading text-sm font-semibold text-background hover:bg-secondary transition-colors">
-            <Plus className="size-4"/>Új hajó
-          </button>
-        </div>
-      </div>
+    <main className="min-h-screen bg-background p-4 lg:p-6">
+      <div className="mx-auto max-w-4xl space-y-4">
+        <header className="flex items-center justify-between flex-wrap gap-3 border-b border-border pb-4">
+          <div className="flex items-center gap-3">
+            <div className="instrument-bezel flex size-11 items-center justify-center">
+              <Ship className="size-5 text-[var(--gold)]" strokeWidth={1.75} />
+            </div>
+            <div>
+              <h1 className="font-heading text-xl font-bold text-foreground leading-tight">Hajóflotta</h1>
+              <p className="label-caps text-[9px] text-muted-foreground">FLEET-REG · {boats.length} hajó</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {msg && (
+              <span className={cn(
+                'label-caps text-[10px] px-2 py-1 rounded-sm',
+                msgErr ? 'text-destructive bg-destructive/10' : 'text-secondary bg-secondary/10'
+              )}>{msg}</span>
+            )}
+            <button onClick={() => { setShowNew(v => !v); setEditId(null) }}
+              className="flex items-center gap-2 rounded-sm bg-foreground px-3 py-2 font-heading text-sm font-semibold text-background hover:bg-secondary transition-colors">
+              <Plus className="size-4" />Új hajó
+            </button>
+          </div>
+        </header>
 
-      {showNew && <BoatForm users={users} onSave={createBoat} onCancel={() => setShowNew(false)}/>}
+        <Panel title="Flotta nyilvántartás" code="FLEET-01">
+          <div className="space-y-3">
+            {showNew && <BoatForm users={users} onSave={createBoat} onCancel={() => setShowNew(false)} />}
 
-      {loading ? (
-        <p className="text-sm text-muted-foreground">Betöltés...</p>
-      ) : boats.length === 0 ? (
-        <div className="rounded-sm border border-border bg-card p-8 text-center">
-          <Ship className="size-8 text-muted-foreground mx-auto mb-2"/>
-          <p className="text-sm text-muted-foreground">Még nincs hajó</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {boats.map(boat => (
-            <div key={boat.id} className="rounded-sm border border-border bg-card overflow-hidden">
-              {editId === boat.id ? (
-                <div className="p-4">
-                  <BoatForm initial={boat} users={users}
-                    onSave={data => updateBoat(boat.id, data)}
-                    onCancel={() => setEditId(null)}/>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3 p-4">
-                  {/* Hajó ikon / kép */}
-                  <div className="w-12 h-12 rounded-sm border border-border bg-muted flex items-center justify-center shrink-0 overflow-hidden">
-                    {boat.image ? (
-                      <img src={`http://127.0.0.1:8090/api/files/boats/${boat.id}/${boat.image}`} alt={boat.name} className="w-full h-full object-cover"/>
+            {loading ? (
+              <p className="text-sm text-muted-foreground py-4">Betöltés...</p>
+            ) : boats.length === 0 ? (
+              <div className="rounded-sm border border-dashed border-border bg-background/50 p-8 text-center">
+                <Ship className="size-8 text-muted-foreground mx-auto mb-2" strokeWidth={1.5} />
+                <p className="text-sm text-muted-foreground">Még nincs hajó a flottában</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {boats.map(boat => (
+                  <div key={boat.id} className="rounded-sm border border-border bg-background/60 overflow-hidden">
+                    {editId === boat.id ? (
+                      <div className="p-3">
+                        <BoatForm initial={boat} users={users}
+                          onSave={data => updateBoat(boat.id, data)}
+                          onCancel={() => setEditId(null)} />
+                      </div>
                     ) : (
-                      <Ship className="size-6 text-muted-foreground" strokeWidth={1.5}/>
+                      <div className="flex items-center gap-3 p-3">
+                        <div className="w-12 h-12 rounded-sm border border-border bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                          {boat.image ? (
+                            <img src={`http://127.0.0.1:8090/api/files/boats/${boat.id}/${boat.image}`} alt={boat.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Ship className="size-6 text-muted-foreground" strokeWidth={1.5} />
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                            <p className="font-heading text-sm font-semibold text-foreground">{boat.name}</p>
+                            {boat.sail_number && (
+                              <span className="label-caps text-[8px] px-1.5 py-0.5 rounded-sm bg-muted text-muted-foreground">
+                                {boat.sail_number}
+                              </span>
+                            )}
+                            <span className={cn(
+                              'label-caps text-[8px] px-1.5 py-0.5 rounded-sm',
+                              boat.class === 'ys1' ? 'bg-secondary/15 text-secondary' :
+                                boat.class === 'ys2' ? 'bg-accent/15 text-accent' :
+                                  'bg-muted text-muted-foreground'
+                            )}>
+                              {classInfo(boat.class)?.label || boat.class}
+                            </span>
+                          </div>
+                          <div className="flex gap-3 text-xs text-muted-foreground flex-wrap items-center">
+                            {getOwnerName(boat.owner_id) && (
+                              <span className="flex items-center gap-1">
+                                <User className="size-3" strokeWidth={1.75} />{getOwnerName(boat.owner_id)}
+                              </span>
+                            )}
+                            {boat.description && (
+                              <span className="truncate max-w-xs">{boat.description}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button onClick={() => setEditId(boat.id)} aria-label="Szerkesztés"
+                            className="rounded-sm border border-border p-1.5 text-muted-foreground hover:text-foreground">
+                            <Edit2 className="size-3.5" />
+                          </button>
+                          <button onClick={() => deleteBoat(boat.id)} aria-label="Törlés"
+                            className="rounded-sm bg-muted p-1.5 text-muted-foreground hover:text-destructive">
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                      <p className="font-heading text-sm font-semibold text-foreground">{boat.name}</p>
-                      {boat.sail_number && (
-                        <span className="label-caps text-[8px] px-1.5 py-0.5 rounded-sm bg-muted text-muted-foreground">
-                          {boat.sail_number}
-                        </span>
-                      )}
-                      <span className={cn(
-                        'label-caps text-[8px] px-1.5 py-0.5 rounded-sm',
-                        boat.class === 'ys1' ? 'bg-secondary/15 text-secondary' :
-                        boat.class === 'ys2' ? 'bg-accent/15 text-accent' :
-                        'bg-muted text-muted-foreground'
-                      )}>
-                        {classInfo(boat.class)?.label || boat.class}
-                      </span>
-                    </div>
-                    <div className="flex gap-3 text-xs text-muted-foreground flex-wrap">
-                      {getOwnerName(boat.owner_id) && (
-                        <span>👤 {getOwnerName(boat.owner_id)}</span>
-                      )}
-                      {boat.description && (
-                        <span className="truncate max-w-xs">{boat.description}</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button onClick={() => setEditId(boat.id)}
-                      className="rounded-sm border border-border p-1.5 text-muted-foreground hover:text-foreground">
-                      <Edit2 className="size-3.5"/>
-                    </button>
-                    <button onClick={() => deleteBoat(boat.id)}
-                      className="rounded-sm bg-muted p-1.5 text-muted-foreground hover:text-destructive">
-                      <Trash2 className="size-3.5"/>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Panel>
+      </div>
+    </main>
   )
 }
