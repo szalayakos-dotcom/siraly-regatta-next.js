@@ -1,0 +1,160 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-heading), 'Oswald Fallback';
+  --font-sans: var(--font-body), 'Barlow Semi Condensed Fallback';
+  --font-mono: var(--font-body), 'Barlow Semi Condensed Fallback';
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* Retro Navy Sailing — sötét navy + krém + piros + teal + arany
+     Referencia: retro travel poster stílus */
+  --background: oklch(0.30 0.045 235);        /* világosabb retro navy */
+  --foreground: oklch(0.22 0.05 240);        /* sötét navy - kártyákon olvasható */
+  --card: oklch(0.89 0.048 78);              /* meleg sárgás bézs kártya */
+  --card-foreground: oklch(0.20 0.05 240);   /* sötét navy szöveg kártyán */
+  --popover: oklch(0.92 0.022 82);
+  --popover-foreground: oklch(0.28 0.045 242);
+  --primary: oklch(0.22 0.05 240);           /* sötét navy elsődleges */
+  --primary-foreground: oklch(0.92 0.03 82);
+  --secondary: oklch(0.52 0.07 200);         /* teal #2a6a7a */
+  --secondary-foreground: oklch(0.92 0.03 82);
+  --muted: oklch(0.28 0.044 237);             /* sötétebb navy */
+  --muted-foreground: oklch(0.72 0.03 80);   /* krém/bézs - gombokon olvasható */
+  --accent: oklch(0.52 0.16 32);             /* piros #c42b1c */
+  --accent-foreground: oklch(0.97 0.012 85);
+  --destructive: oklch(0.55 0.18 30);
+  --border: oklch(0.20 0.05 240 / 0.2);      /* sötét border kártyákon */
+  --input: oklch(0.82 0.035 78);
+  --ring: oklch(0.52 0.07 200);
+  --chart-1: oklch(0.52 0.16 32);
+  --chart-2: oklch(0.52 0.07 200);
+  --chart-3: oklch(0.72 0.1 85);
+  --chart-4: oklch(0.88 0.025 82);
+  --chart-5: oklch(0.40 0.05 220);
+  --radius: 0.3rem;
+  --sidebar: oklch(0.24 0.044 237);           /* sidebar navy */
+  --sidebar-foreground: oklch(0.88 0.025 82);
+  --sidebar-primary: oklch(0.52 0.16 32);    /* piros aktív elem */
+  --sidebar-primary-foreground: oklch(0.97 0.012 85);
+  --sidebar-accent: oklch(0.28 0.042 242);
+  --sidebar-accent-foreground: oklch(0.88 0.025 82);
+  --sidebar-border: oklch(0.88 0.025 82 / 0.1);
+  --sidebar-ring: oklch(0.52 0.16 32);
+}
+
+.dark {
+  --background: oklch(0.30 0.045 235);
+  --foreground: oklch(0.22 0.05 240);
+  --card: oklch(0.26 0.042 242);
+  --card-foreground: oklch(0.20 0.05 240);   /* sötét navy szöveg kártyán */
+  --popover: oklch(0.92 0.022 82);
+  --popover-foreground: oklch(0.28 0.045 242);
+  --primary: oklch(0.88 0.025 82);
+  --primary-foreground: oklch(0.92 0.03 82);
+  --secondary: oklch(0.52 0.07 200);
+  --secondary-foreground: oklch(0.97 0.012 85);
+  --muted: oklch(0.26 0.042 237);
+  --muted-foreground: oklch(0.72 0.03 80);
+  --accent: oklch(0.52 0.16 32);
+  --accent-foreground: oklch(0.97 0.012 85);
+  --destructive: oklch(0.55 0.18 30);
+  --border: oklch(0.20 0.05 240 / 0.2);
+  --input: oklch(0.82 0.035 78);
+  --ring: oklch(0.52 0.07 200);
+  --chart-1: oklch(0.52 0.16 32);
+  --chart-2: oklch(0.52 0.07 200);
+  --chart-3: oklch(0.72 0.1 85);
+  --chart-4: oklch(0.88 0.025 82);
+  --chart-5: oklch(0.40 0.05 220);
+  --sidebar: oklch(0.24 0.044 237);
+  --sidebar-foreground: oklch(0.88 0.025 82);
+  --sidebar-primary: oklch(0.52 0.16 32);
+  --sidebar-primary-foreground: oklch(0.97 0.012 85);
+  --sidebar-accent: oklch(0.28 0.042 242);
+  --sidebar-accent-foreground: oklch(0.88 0.025 82);
+  --sidebar-border: oklch(0.88 0.025 82 / 0.1);
+  --sidebar-ring: oklch(0.52 0.16 32);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+@layer utilities {
+  /* Faded ink printed paper grain */
+  .paper-grain {
+    background-image: radial-gradient(
+        oklch(0.88 0.025 82 / 0.03) 1px,
+        transparent 1px
+      ),
+      radial-gradient(oklch(0.88 0.025 82 / 0.02) 1px, transparent 1px);
+    background-size: 4px 4px, 7px 7px;
+    background-position: 0 0, 2px 3px;
+  }
+  .label-caps {
+    font-family: var(--font-heading);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+  }
+  .ticks {
+    background-image: repeating-linear-gradient(
+      to right,
+      currentColor 0,
+      currentColor 1px,
+      transparent 1px,
+      transparent 8px
+    );
+  }
+}
