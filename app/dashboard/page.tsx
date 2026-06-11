@@ -10,7 +10,8 @@ import { SailTrim, TrimSnapshot } from '@/components/sail-trim'
 import { ConditionsForecast } from '@/components/conditions-forecast'
 import { TacticalBrief } from '@/components/tactical-brief'
 import { WarningPanel, WarningState } from '@/components/warning-panel'
-import { getPocketBase, RACE_ID } from '@/lib/pocketbase'
+import { getPocketBase } from '@/lib/pocketbase'
+import { useRace } from '@/components/race-context'
 import { HeelIndicator } from '@/components/heel-indicator'
 import { CheckpointOverlay } from '@/components/checkpoint-overlay'
 import { FinishOverlay } from '@/components/finish-overlay'
@@ -74,7 +75,7 @@ export default function Page() {
       if (!pb.authStore.isValid) return
       try {
         const pos = await pb.collection('race_positions').getFirstListItem(
-          `race_id="${RACE_ID}" && player_id="${pb.authStore.record?.id}"`
+          `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`
         )
         await pb.collection('race_positions').update(pos.id, {
           sail_gross:     snapshot.sails.gross,
@@ -99,7 +100,7 @@ export default function Page() {
     const pb = getPocketBase()
     async function checkStatus() {
       try {
-        const race = await pb.collection('races').getOne(RACE_ID)
+        const race = await pb.collection('races').getOne(raceId)
         setRaceStatus(race.status || 'active')
         if (race.scheduled_start) {
           setScheduledStart(new Date(race.scheduled_start).getTime())
@@ -108,14 +109,14 @@ export default function Page() {
         if (pb.authStore.isValid) {
           try {
             const pr = await pb.collection('player_races').getFirstListItem(
-              `race_id="${RACE_ID}" && player_id="${pb.authStore.record?.id}"`
+              `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`
             )
             if (pr.started_at) { setHasStarted(true); return }
           } catch {}
           // Ha van race_positions rekord → már elindult
           try {
             await pb.collection('race_positions').getFirstListItem(
-              `race_id="${RACE_ID}" && player_id="${pb.authStore.record?.id}"`
+              `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`
             )
             setHasStarted(true)
           } catch {}
@@ -181,7 +182,7 @@ export default function Page() {
         const pb = getPocketBase()
         if (pb.authStore.isValid) {
           pb.collection('player_races').getFirstListItem(
-            `race_id="${RACE_ID}" && player_id="${pb.authStore.record?.id}"`
+            `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`
           ).then(pr => {
             pb.collection('player_races').delete(pr.id)
             // Nevezési díj visszaadása
@@ -219,7 +220,7 @@ export default function Page() {
     if (!pb.authStore.isValid) return
     try {
       const pr = await pb.collection('player_races').getFirstListItem(
-        `race_id="${RACE_ID}" && player_id="${pb.authStore.record?.id}"`
+        `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`
       )
       await pb.collection('player_races').update(pr.id, { started_at: new Date().toISOString() })
       setHasStarted(true)
@@ -235,7 +236,7 @@ export default function Page() {
       if (!pb.authStore.isValid) return
       try {
         const pos = await pb.collection('race_positions').getFirstListItem(
-          `race_id="${RACE_ID}" && player_id="${pb.authStore.record?.id}"`
+          `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`
         )
         // Cél elérés detektálás — csak ha az elmúlt 5 percben ért célba
         if (pos.status === 'finished' && !finishShownRef.current && pos.finished_at) {
@@ -252,7 +253,7 @@ export default function Page() {
         if (cp > lastCpRef.current && lastCpRef.current >= 0) {
           // CP elért — overlay megnyitása
           try {
-            const race = await pb.collection('races').getOne(RACE_ID)
+            const race = await pb.collection('races').getOne(raceId)
             const course = await pb.collection('courses').getOne(race.course_id)
             const pts = typeof course.points === 'string' ? JSON.parse(course.points) : (course.points || [])
             const main = pts.filter((p: any) => p.type !== 'waypoint').sort((a: any, b: any) => a.order - b.order)
@@ -289,7 +290,7 @@ export default function Page() {
         let posRecord: any = null
         try {
           posRecord = await pb.collection('race_positions').getFirstListItem(
-            `race_id="${RACE_ID}" && player_id="${userId}"`
+            `race_id="${raceId}" && player_id="${userId}"`
           )
         } catch {}
 

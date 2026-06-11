@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { Navigation, Wind, Clock, Flag, Coins } from 'lucide-react'
-import { getPocketBase, RACE_ID } from '@/lib/pocketbase'
+import { getPocketBase } from '@/lib/pocketbase'
+import { useRace } from '@/components/race-context'
 import { kmhToKnots } from '@/lib/units'
 
 export function StatusBar() {
+  const { raceId } = useRace()
   const [raceName, setRaceName] = useState('')
   const [raceStage, setRaceStage] = useState('')
   const [raceTime, setRaceTime] = useState('00:00:00')
@@ -39,7 +41,8 @@ export function StatusBar() {
 
     async function load() {
       try {
-        const race = await pb.collection('races').getOne(RACE_ID)
+        if (!raceId) return
+        const race = await pb.collection('races').getOne(raceId)
         setRaceName(race.name)
         if (race.actual_start) {
           setRaceStart(new Date(race.actual_start).getTime())
@@ -59,7 +62,7 @@ export function StatusBar() {
         if (pb.authStore.isValid) {
           setUsername(pb.authStore.record?.name || pb.authStore.record?.email || '')
           const pr = await pb.collection('player_races').getList(1, 1, {
-            filter: `race_id="${RACE_ID}" && player_id="${pb.authStore.record?.id}"`,
+            filter: `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`,
           })
           // Kredit a player_profiles-ból
           try {
@@ -71,14 +74,14 @@ export function StatusBar() {
         }
 
         const segs = await pb.collection('weather_segments').getFullList({
-          filter: `race_id="${RACE_ID}"`, sort: 'from_cp_index',
+          filter: `race_id="${raceId}"`, sort: 'from_cp_index',
         })
 
         // Saját pozíció sebessége és CP index
         if (pb.authStore.isValid) {
           try {
             const pos = await pb.collection('race_positions').getFirstListItem(
-              `race_id="${RACE_ID}" && player_id="${pb.authStore.record?.id}"`
+              `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`
             )
             setSpeed(Math.round(kmhToKnots(pos.speed_kmh || 0) * 10) / 10)
             setHeading(pos.heading_deg || 247)

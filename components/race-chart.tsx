@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Panel } from './panel'
-import { getPocketBase, RACE_ID } from '@/lib/pocketbase'
+import { getPocketBase } from '@/lib/pocketbase'
+import { useRace } from '@/components/race-context'
 
 export function RaceChart() {
+  const { raceId } = useRace()
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
   const markersRef = useRef<Record<string, any>>({})
@@ -16,7 +18,7 @@ export function RaceChart() {
   useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
-    if (!mounted || !mapRef.current || mapInstanceRef.current) return
+    if (!mounted || !mapRef.current || mapInstanceRef.current || !raceId) return
 
     async function initMap() {
       const L = (await import('leaflet')).default
@@ -38,7 +40,7 @@ export function RaceChart() {
       // Pálya pontok betöltése a versenyhez rendelt course-ból
       const pb = getPocketBase()
       try {
-        const race = await pb.collection('races').getOne(RACE_ID)
+        const race = await pb.collection('races').getOne(raceId)
         if (race.course_id) {
           const course = await pb.collection('courses').getOne(race.course_id)
           const points = typeof course.points === 'string' ? JSON.parse(course.points || '[]') : (course.points || [])
@@ -70,7 +72,7 @@ export function RaceChart() {
       const pb = getPocketBase()
       try {
         const positions = await pb.collection('race_positions').getFullList({
-          filter: `race_id="${RACE_ID}"`,
+          filter: `race_id="${raceId}"`,
         })
         const myId = pb.authStore.record?.id
 
@@ -89,7 +91,7 @@ export function RaceChart() {
           } catch {}
           try {
             const pr = await pb.collection('player_races').getFirstListItem(
-              `race_id="${RACE_ID}" && player_id="${pos.player_id}"`
+              `race_id="${raceId}" && player_id="${pos.player_id}"`
             )
             const boat = await pb.collection('boats').getOne(pr.boat_id)
             boatName = boat.name || '—'
@@ -154,7 +156,7 @@ export function RaceChart() {
         mapInstanceRef.current = null
       }
     }
-  }, [mounted])
+  }, [mounted, raceId])
 
   function toggleFollow() {
     const next = !following

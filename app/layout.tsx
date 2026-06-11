@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata } from 'next'
 import { Playfair_Display, Barlow_Condensed } from 'next/font/google'
+import { RaceProvider } from '@/components/race-context'
 import './globals.css'
 
 const playfair = Playfair_Display({
@@ -45,7 +46,9 @@ export default function RootLayout({
   return (
     <html lang="hu" className={`${playfair.variable} ${barlow.variable} bg-background`}>
       <body className="font-sans antialiased">
-        {children}
+        <RaceProvider>
+          {children}
+        </RaceProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

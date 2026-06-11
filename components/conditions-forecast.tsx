@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { Panel } from './panel'
-import { getPocketBase, RACE_ID } from '@/lib/pocketbase'
+import { getPocketBase } from '@/lib/pocketbase'
+import { useRace } from '@/components/race-context'
 import { Wind, Waves, CloudLightning } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -23,6 +24,7 @@ const stormLabel = ['OK', '1. fokú vihar', '2. fokú vihar']
 const stormColor = ['text-secondary', 'text-accent', 'text-destructive']
 
 export function ConditionsForecast() {
+  const { raceId } = useRace()
   const [segments, setSegments] = useState<Segment[]>([])
   const [checkpoints, setCheckpoints] = useState<Record<number, string>>({})
   const [currentCpIndex, setCurrentCpIndex] = useState(0)
@@ -38,10 +40,10 @@ export function ConditionsForecast() {
       try {
         const [segs, cps] = await Promise.all([
           pb.collection('weather_segments').getFullList({
-            filter: `race_id="${RACE_ID}"`, sort: 'from_cp_index',
+            filter: `race_id="${raceId}"`, sort: 'from_cp_index',
           }),
           pb.collection('checkpoints').getFullList({
-            filter: `race_id="${RACE_ID}"`, sort: 'order_index',
+            filter: `race_id="${raceId}"`, sort: 'order_index',
           }),
         ])
 
@@ -54,7 +56,7 @@ export function ConditionsForecast() {
         if (pb.authStore.isValid) {
           try {
             const pos = await pb.collection('race_positions').getFirstListItem(
-              `race_id="${RACE_ID}" && player_id="${pb.authStore.record?.id}"`
+              `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`
             )
             setCurrentCpIndex(pos.cp_index || 0)
           } catch {}

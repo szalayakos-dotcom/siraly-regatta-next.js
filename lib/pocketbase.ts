@@ -7,10 +7,8 @@ let browserClient: PocketBase | null = null
 
 export function getPocketBase(): PocketBase {
   if (typeof window === 'undefined') {
-    // Server-side: új instance minden kérésnél
     return new PocketBase(POCKETBASE_URL)
   }
-  // Browser-side: singleton
   if (!browserClient) {
     browserClient = new PocketBase(POCKETBASE_URL)
     browserClient.autoCancellation(false)
@@ -18,14 +16,38 @@ export function getPocketBase(): PocketBase {
   return browserClient
 }
 
-export const RACE_ID = 'o4y5q6906t49157'
+// Dinamikus verseny betöltés — active vagy published, legközelebbi scheduled_start
+export async function getActiveRace(): Promise<{ id: string; [key: string]: any } | null> {
+  const pb = getPocketBase()
+  try {
+    // Először active
+    const active = await pb.collection('races').getFullList({
+      filter: "status='active'",
+      sort: 'scheduled_start',
+    })
+    if (active.length > 0) return active[0]
+
+    // Ha nincs active, legközelebbi published
+    const published = await pb.collection('races').getFullList({
+      filter: "status='published'",
+      sort: 'scheduled_start',
+    })
+    if (published.length > 0) return published[0]
+
+    return null
+  } catch {
+    return null
+  }
+}
 
 // Típusok
 export interface Race {
   id: string
   name: string
   actual_start?: string
+  scheduled_start?: string
   status: string
+  course_id?: string
 }
 
 export interface WeatherSegment {

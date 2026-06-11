@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { Panel } from './panel'
 import { cn } from '@/lib/utils'
-import { getPocketBase, RACE_ID } from '@/lib/pocketbase'
+import { getPocketBase } from '@/lib/pocketbase'
+import { useRace } from '@/components/race-context'
 import { kmhToKnots } from '@/lib/units'
 
 interface Standing {
@@ -16,15 +17,17 @@ interface Standing {
 }
 
 export function FleetStandings() {
+  const { raceId } = useRace()
   const [fleet, setFleet] = useState<Standing[]>([])
 
   useEffect(() => {
+    if (!raceId) return
     const pb = getPocketBase()
 
     async function load() {
       try {
         const positions = await pb.collection('race_positions').getFullList({
-          filter: `race_id="${RACE_ID}"`,
+          filter: `race_id="${raceId}"`,
         })
         const sorted = positions.sort((a, b) =>
           (b.cp_index || 0) - (a.cp_index || 0) || (b.speed_kmh || 0) - (a.speed_kmh || 0)

@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getPocketBase, RACE_ID } from '@/lib/pocketbase'
+import { getPocketBase } from '@/lib/pocketbase'
+import { useRace } from '@/components/race-context'
 import { kmhToKnots } from '@/lib/units'
 import { cn } from '@/lib/utils'
 
@@ -39,6 +40,7 @@ function SailBtn({ label, active, onClick, color = 'secondary' }: { label: strin
 }
 
 export function CheckpointOverlay({ cpIndex, cpName, onClose, sails, onSailChange }: CheckpointOverlayProps) {
+  const { raceId } = useRace()
   const [elapsedSec, setElapsedSec] = useState(0)
   const [totalSec, setTotalSec] = useState(0)
   const [position, setPosition] = useState<number | null>(null)
@@ -56,14 +58,14 @@ export function CheckpointOverlay({ cpIndex, cpName, onClose, sails, onSailChang
     async function load() {
       try {
         // Verseny kezdete
-        const race = await pb.collection('races').getOne(RACE_ID)
+        const race = raceId ? await pb.collection('races').getOne(raceId) : null
         const raceStart = race.actual_start ? new Date(race.actual_start).getTime() : Date.now()
         const now = Date.now()
         setTotalSec(Math.floor((now - raceStart) / 1000))
 
         // Következő szakasz időjárása
         const segs = await pb.collection('weather_segments').getFullList({
-          filter: `race_id="${RACE_ID}"`, sort: 'from_cp_index',
+          filter: `race_id="${raceId}"`, sort: 'from_cp_index',
         })
         const nextSeg = segs.find((s: any) => s.from_cp_index === cpIndex)
         if (nextSeg) {
@@ -76,7 +78,7 @@ export function CheckpointOverlay({ cpIndex, cpName, onClose, sails, onSailChang
 
         // Helyezés
         const positions = await pb.collection('race_positions').getFullList({
-          filter: `race_id="${RACE_ID}"`, sort: '-cp_index',
+          filter: `race_id="${raceId}"`, sort: '-cp_index',
         })
         const myId = pb.authStore.record?.id
         const myIdx = positions.findIndex((p: any) => p.player_id === myId)

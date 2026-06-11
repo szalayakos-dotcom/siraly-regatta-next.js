@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { Panel } from './panel'
-import { getPocketBase, RACE_ID } from '@/lib/pocketbase'
+import { getPocketBase } from '@/lib/pocketbase'
+import { useRace } from '@/components/race-context'
 import { recommendSails, kmhToKnots, YS1_POLAR, interpolatePolar, grossReefMultiplier, fockrollerEfficiency, type GrossReef } from '@/lib/units'
 import { calcPhysics, WarningState } from '@/lib/engine-physics'
 import type { WarningState as WS } from '@/components/warning-panel'
@@ -79,6 +80,7 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
   onTrimChange?: (snapshot: TrimSnapshot) => void
 }) {
   const [mounted, setMounted] = useState(false)
+  const { raceId } = useRace()
   const [sails, setSails] = useState<SailState>({ gross: true, fock: true, genua: false, spinn: false, genakker: false })
   const [trim, setTrim] = useState<TrimState>({ mainsheet: 78, jibtrim: 64, boomvang: 52, backstay: 71, cunningham: 40, spinnshot: 50, genakkershot: 50, grossReef: 0, fockReef: 0, fockrollerPct: 100, hasFockroller: false })
   const [hasFockroller, setHasFockroller] = useState(false)
@@ -95,7 +97,7 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
     if (!mounted) return
     const pb = getPocketBase()
     pb.collection('weather_segments').getFullList({
-      filter: `race_id="${RACE_ID}"`, sort: 'from_cp_index',
+      filter: `race_id="${raceId}"`, sort: 'from_cp_index',
     }).then(segs => {
       if (segs.length) {
         setWindDir(segs[0].wind_dir)
@@ -105,7 +107,7 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
 
     if (pb.authStore.isValid) {
       pb.collection('player_races').getList(1, 1, {
-        filter: `race_id="${RACE_ID}" && player_id="${pb.authStore.record?.id}"`,
+        filter: `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`,
       }).then(pr => {
         if (pr.items.length) setCredits(pr.items[0].credits || 0)
       }).catch(() => {})
@@ -188,7 +190,7 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
       const pb = getPocketBase()
       if (pb.authStore.isValid) {
         const pr = await pb.collection('player_races').getList(1, 1, {
-          filter: `race_id="${RACE_ID}" && player_id="${pb.authStore.record?.id}"`,
+          filter: `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`,
         })
         if (pr.items.length) {
           await pb.collection('player_races').update(pr.items[0].id, { credits: credits - 10 })
@@ -203,7 +205,7 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
       const pb = getPocketBase()
       if (pb.authStore.isValid) {
         const pr = await pb.collection('player_races').getList(1, 1, {
-          filter: `race_id="${RACE_ID}" && player_id="${pb.authStore.record?.id}"`,
+          filter: `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`,
         })
         if (pr.items.length) {
           await pb.collection('player_races').update(pr.items[0].id, {
