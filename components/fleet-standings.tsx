@@ -43,7 +43,7 @@ export function FleetStandings() {
             nameMap[pid] = user.name || user.email || 'Versenyző'
           } catch {
             try {
-              const profile = await pb.collection('player_profiles').getFirstListItem(`user_id='${pid}'`)
+              const profile = await pb.collection('player_profiles').getFirstListItem(`player_id="${pid}"`)
               nameMap[pid] = profile.name || profile.username || 'Versenyző'
             } catch { nameMap[pid] = 'Versenyző' }
           }
