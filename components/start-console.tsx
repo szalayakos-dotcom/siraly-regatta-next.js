@@ -46,7 +46,7 @@ export function StartConsole({ startState, countdown, hasStarted, onStart }: Sta
         <div className="lcd-screen lcd-amber flex items-center justify-between px-3 py-2">
           <span className="label-caps text-[10px] opacity-80">{phase.label}</span>
           <span className="text-2xl font-bold tabular-nums tracking-wider">
-            {hasStarted ? '—' : (countdown || '--:--')}
+            {countdown || '--:--'}
           </span>
         </div>
         {/* Fázis-lámpák */}

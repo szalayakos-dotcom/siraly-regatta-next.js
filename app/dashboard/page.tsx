@@ -52,6 +52,8 @@ export default function Page() {
   const [scheduledStart, setScheduledStart] = useState<number | null>(null)
   const [countdown, setCountdown] = useState<string>('')
   const [hasStarted, setHasStarted] = useState(false)
+  const [startedAt, setStartedAt] = useState<number | null>(null)
+  const [elapsedStr, setElapsedStr] = useState<string>('00:00')
   const alertedRef = useRef<Set<string>>(new Set())
 
   function playHorn() {
@@ -124,6 +126,18 @@ export default function Page() {
     const interval = setInterval(checkStatus, 10000)
     return () => clearInterval(interval)
   }, [])
+
+  // Elapsed timer — rajt után előre számol
+  useEffect(() => {
+    if (!hasStarted || !startedAt) return
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startedAt) / 1000)
+      const m = Math.floor(elapsed / 60)
+      const s = elapsed % 60
+      setElapsedStr(`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`)
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [hasStarted, startedAt])
 
   // Start countdown
   useEffect(() => {
@@ -209,6 +223,7 @@ export default function Page() {
       )
       await pb.collection('player_races').update(pr.id, { started_at: new Date().toISOString() })
       setHasStarted(true)
+      setStartedAt(Date.now())
       setStartState('started')
     } catch {}
   }
@@ -385,7 +400,7 @@ export default function Page() {
         <div className="border-b border-[oklch(0.42_0.04_248)] bg-[linear-gradient(180deg,oklch(0.22_0.03_250),oklch(0.16_0.025_250))] px-4 py-4">
           <StartConsole
             startState={startState}
-            countdown={countdown}
+            countdown={hasStarted ? `+${elapsedStr}` : countdown}
             hasStarted={hasStarted}
             onStart={handleStart}
           />
