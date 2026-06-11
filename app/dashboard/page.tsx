@@ -36,6 +36,7 @@ function SectionLabel({ code, children }: { code: string; children: React.ReactN
 }
 
 export default function Page() {
+  const { raceId } = useRace()
   const [raceStatus, setRaceStatus] = useState('active')
   const [warnings, setWarnings] = useState<WarningState>({
     vihar: 0, leszuras: false, drift: 0,
