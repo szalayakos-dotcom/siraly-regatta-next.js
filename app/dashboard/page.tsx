@@ -61,8 +61,35 @@ export default function Page() {
 
   const [heel, setHeel] = useState(0)
 
+  const trimUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const handleTrimChange = useCallback((snapshot: TrimSnapshot) => {
     trimSnapshotRef.current = snapshot
+    // Debounce: 1 másodperc után írjuk a race_positions-be
+    if (trimUpdateTimerRef.current) clearTimeout(trimUpdateTimerRef.current)
+    trimUpdateTimerRef.current = setTimeout(async () => {
+      const pb = getPocketBase()
+      if (!pb.authStore.isValid) return
+      try {
+        const pos = await pb.collection('race_positions').getFirstListItem(
+          `race_id="${RACE_ID}" && player_id="${pb.authStore.record?.id}"`
+        )
+        await pb.collection('race_positions').update(pos.id, {
+          sail_gross:     snapshot.sails.gross,
+          sail_fock:      snapshot.sails.fock,
+          sail_genua:     snapshot.sails.genua,
+          sail_spinn_bool: snapshot.sails.spinn,
+          sail_genakker:  snapshot.sails.genakker,
+          trim_mainsheet:    snapshot.trim.mainsheet,
+          trim_jibtrim:      snapshot.trim.jibtrim,
+          trim_boomvang:     snapshot.trim.boomvang,
+          trim_backstay:     snapshot.trim.backstay,
+          trim_cunningham:   snapshot.trim.cunningham,
+          trim_spinnshot:    snapshot.trim.spinnshot,
+          trim_genakkershot: snapshot.trim.genakkershot,
+        })
+      } catch {}
+    }, 1000)
   }, [])
 
   // Race status ellenőrzés
