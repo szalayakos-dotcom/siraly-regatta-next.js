@@ -101,7 +101,7 @@ export function StatusBar() {
     load()
     const interval = setInterval(load, 10000)
     return () => clearInterval(interval)
-  }, [mounted])
+  }, [mounted, raceId])
 
   const dirs = ['É','ÉK','K','DK','D','DNy','Ny','ÉNy']
   const headingLabel = dirs[Math.round(((heading % 360) + 360) % 360 / 45) % 8]
