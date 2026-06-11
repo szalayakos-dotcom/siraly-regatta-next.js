@@ -242,8 +242,8 @@ export default function KikotoPage() {
                   canEnter = true
                 }
               } catch {
-                // Nincs még pozíció de be van nevezve — még indulhat
-                if (race.status === 'active') canEnter = true
+                // Nincs még pozíció de be van nevezve — beengedés
+                canEnter = true
               }
             }
           }
