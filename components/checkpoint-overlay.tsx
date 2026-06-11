@@ -135,7 +135,7 @@ export function CheckpointOverlay({ cpIndex, cpName, onClose, sails, onSailChang
         }}>
           <div>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: '11px', letterSpacing: '3px', color: 'var(--background)', opacity: 0.6 }}>
-              ⚓ IDŐMÉRŐ BÓLYA
+              ⚓ BÓLYA
             </div>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: '22px', fontWeight: 900, color: 'var(--background)', letterSpacing: '1px' }}>
               {cpName || `CP ${cpIndex}`}

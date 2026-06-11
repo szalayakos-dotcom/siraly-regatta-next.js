@@ -13,7 +13,6 @@ import { WarningPanel, WarningState } from '@/components/warning-panel'
 import { getPocketBase, RACE_ID } from '@/lib/pocketbase'
 import { HeelIndicator } from '@/components/heel-indicator'
 import { CheckpointOverlay } from '@/components/checkpoint-overlay'
-import { WaypointOverlay } from '@/components/waypoint-overlay'
 import { FinishOverlay } from '@/components/finish-overlay'
 import { Panel } from '@/components/panel'
 import { StartConsole } from '@/components/start-console'
@@ -45,7 +44,6 @@ export default function Page() {
   // Trim snapshot ref — mindig friss értéket tárol a tick számára
   const trimSnapshotRef = useRef<TrimSnapshot | null>(null)
   const [cpOverlay, setCpOverlay] = useState<{ index: number; name: string } | null>(null)
-  const [waypointOverlay, setWaypointOverlay] = useState<{ index: number; name: string } | null>(null)
   const [finishOverlay, setFinishOverlay] = useState<{ finishedAt: string } | null>(null)
   const [overlaySails, setOverlaySails] = useState<SailState>({ gross: true, fock: true, genua: false, spinn: false, genakker: false })
   const lastCpRef = useRef<number>(-1)
@@ -257,16 +255,10 @@ export default function Page() {
             const race = await pb.collection('races').getOne(RACE_ID)
             const course = await pb.collection('courses').getOne(race.course_id)
             const pts = typeof course.points === 'string' ? JSON.parse(course.points) : (course.points || [])
-            const allPts = pts.filter((p: any) => ['start','waypoint','checkpoint','finish'].includes(p.type))
-              .sort((a: any, b: any) => a.order - b.order)
-            const reachedPt = allPts[cp]
-            const ptName = reachedPt?.name || `CP ${cp}`
+            const main = pts.filter((p: any) => p.type !== 'waypoint').sort((a: any, b: any) => a.order - b.order)
+            const cpName = main[cp]?.name || `CP ${cp}`
+            setCpOverlay({ index: cp, name: cpName })
             if (trimSnapshotRef.current) setOverlaySails({ ...trimSnapshotRef.current.sails })
-            if (reachedPt?.type === 'waypoint') {
-              setWaypointOverlay({ index: cp, name: ptName })
-            } else if (reachedPt?.type === 'checkpoint') {
-              setCpOverlay({ index: cp, name: ptName })
-            }
           } catch {
             setCpOverlay({ index: cp, name: `CP ${cp}` })
           }
@@ -365,15 +357,6 @@ export default function Page() {
           <FinishOverlay
             finishedAt={finishOverlay.finishedAt}
             onClose={() => setFinishOverlay(null)}
-          />
-        )}
-        {!finishOverlay && waypointOverlay && (
-          <WaypointOverlay
-            cpIndex={waypointOverlay.index}
-            cpName={waypointOverlay.name}
-            sails={overlaySails}
-            onSailChange={(s) => { setOverlaySails(s) }}
-            onClose={() => setWaypointOverlay(null)}
           />
         )}
         {!finishOverlay && cpOverlay && (
