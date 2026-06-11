@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Sailboat, ChevronLeft, Pause } from 'lucide-react'
 import { StatusBar } from '@/components/status-bar'
 import { WindDial } from '@/components/wind-dial'
@@ -36,8 +37,15 @@ function SectionLabel({ code, children }: { code: string; children: React.ReactN
 }
 
 export default function Page() {
-  const { raceId } = useRace()
+  const { raceId, loading } = useRace()
+  const router = useRouter()
   const [raceStatus, setRaceStatus] = useState('active')
+
+  useEffect(() => {
+    if (!loading && !raceId) {
+      router.push('/kikoto')
+    }
+  }, [raceId, loading])
   const [warnings, setWarnings] = useState<WarningState>({
     vihar: 0, leszuras: false, drift: 0,
     vitorla: true, tuldoles: false, trimEfficiency: 0, raceAlert: null,
