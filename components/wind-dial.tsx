@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { Panel } from './panel'
-import { getPocketBase, RACE_ID } from '@/lib/pocketbase'
+import { getPocketBase } from '@/lib/pocketbase'
+import { useRace } from '@/components/race-context'
 import { kmhToKnots } from '@/lib/units'
 
 const D2R = Math.PI / 180
@@ -21,6 +22,7 @@ const cardinals: [string, number][] = [['N',0],['E',90],['S',180],['W',270]]
 const noGoHalfAngle = 40
 
 export function WindDial() {
+  const { raceId } = useRace()
   const [mounted, setMounted] = useState(false)
   const [trueWindDir, setTrueWindDir] = useState(215)
   const [trueWindSpd, setTrueWindSpd] = useState(14)
@@ -43,7 +45,7 @@ export function WindDial() {
     async function load() {
       try {
         const segs = await pb.collection('weather_segments').getFullList({
-          filter: `race_id="${RACE_ID}"`, sort: 'from_cp_index',
+          filter: `race_id="${raceId}"`, sort: 'from_cp_index',
         })
         if (segs.length) {
           const s = segs[0]
@@ -55,7 +57,7 @@ export function WindDial() {
 
       try {
         const positions = await pb.collection('race_positions').getFullList({
-          filter: `race_id="${RACE_ID}"`,
+          filter: `race_id="${raceId}"`,
         })
         const mine = positions.find(p => p.player_id === pb.authStore.record?.id)
         if (mine) {

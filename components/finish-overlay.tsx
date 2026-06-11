@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getPocketBase, RACE_ID } from '@/lib/pocketbase'
+import { getPocketBase } from '@/lib/pocketbase'
+import { useRace } from '@/components/race-context'
 
 interface FinishOverlayProps {
   finishedAt: string
@@ -10,6 +11,7 @@ interface FinishOverlayProps {
 }
 
 export function FinishOverlay({ finishedAt, onClose }: FinishOverlayProps) {
+  const { raceId } = useRace()
   const router = useRouter()
   const [position, setPosition] = useState<number | null>(null)
   const [totalTime, setTotalTime] = useState('')
@@ -25,13 +27,13 @@ export function FinishOverlay({ finishedAt, onClose }: FinishOverlayProps) {
 
     async function load() {
       try {
-        const race = await pb.collection('races').getOne(RACE_ID)
+        const race = await pb.collection('races').getOne(raceId)
         let raceStart = race.actual_start ? new Date(race.actual_start).getTime() : 0
         // Fallback: player_races joined_at
         if (!raceStart && pb.authStore.isValid) {
           try {
             const pr = await pb.collection('player_races').getFirstListItem(
-              `race_id="${RACE_ID}" && player_id="${pb.authStore.record?.id}"`
+              `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`
             )
             if (pr.joined_at) raceStart = new Date(pr.joined_at).getTime()
           } catch {}
@@ -45,7 +47,7 @@ export function FinishOverlay({ finishedAt, onClose }: FinishOverlayProps) {
 
         // Helyezés
         const positions = await pb.collection('race_positions').getFullList({
-          filter: `race_id="${RACE_ID}" && status="finished"`,
+          filter: `race_id="${raceId}" && status="finished"`,
           sort: 'finished_at',
         })
         const myId = pb.authStore.record?.id

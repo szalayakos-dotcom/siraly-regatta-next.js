@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { Panel } from './panel'
-import { getPocketBase, RACE_ID } from '@/lib/pocketbase'
+import { getPocketBase } from '@/lib/pocketbase'
+import { useRace } from '@/components/race-context'
 import { Skull, X } from 'lucide-react'
 
 const CARDS = [
@@ -21,6 +22,7 @@ const CARDS = [
 ]
 
 export function TacticalBrief() {
+  const { raceId } = useRace()
   const [davyUsed, setDavyUsed] = useState(false)
   const [drawnCard, setDrawnCard] = useState<typeof CARDS[0] | null>(null)
   const [phase, setPhase] = useState<'idle'|'flipping'|'zoomed'|'done'|'returning'|'idle-used'>('idle')
@@ -39,7 +41,7 @@ export function TacticalBrief() {
       const pb = getPocketBase()
       if (pb.authStore.isValid) {
         const pr = await pb.collection('player_races').getList(1, 1, {
-          filter: `race_id="${RACE_ID}" && player_id="${pb.authStore.record?.id}"`,
+          filter: `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`,
         })
         if (pr.items.length) {
           const updates: any = { davy_jones_used: true }
@@ -65,7 +67,7 @@ export function TacticalBrief() {
     try {
       const pb = getPocketBase()
       const segs = await pb.collection('weather_segments').getFullList({
-        filter: `race_id="${RACE_ID}"`, sort: 'from_cp_index',
+        filter: `race_id="${raceId}"`, sort: 'from_cp_index',
       })
       const next = segs[1] || segs[0]
       if (type === 'weather') {

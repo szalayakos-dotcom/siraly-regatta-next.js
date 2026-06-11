@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getPocketBase, RACE_ID } from '@/lib/pocketbase'
+import { getPocketBase } from '@/lib/pocketbase'
+import { useRace } from '@/components/race-context'
 import {
   Zap, CloudLightning, Users, RotateCcw,
   Megaphone, Pause, Play, Square, Undo2, Check, TriangleAlert,
@@ -9,6 +10,7 @@ import {
 import { Panel } from '@/components/panel'
 
 export default function GodModePage() {
+  const { raceId } = useRace()
   const [windDir, setWindDir] = useState(215)
   const [windSpeed, setWindSpeed] = useState(18)
   const [stormLevel, setStormLevel] = useState(0)
@@ -28,10 +30,10 @@ export default function GodModePage() {
     const pb = getPocketBase()
     async function load() {
       try {
-        const race = await pb.collection('races').getOne(RACE_ID)
+        const race = await pb.collection('races').getOne(raceId)
         setRaceStatus(race.status || 'idle')
         const segs = await pb.collection('weather_segments').getFullList({
-          filter: `race_id="${RACE_ID}"`, sort: 'from_cp_index',
+          filter: `race_id="${raceId}"`, sort: 'from_cp_index',
         })
         if (segs.length) {
           setWindDir(segs[0].wind_dir)
@@ -39,7 +41,7 @@ export default function GodModePage() {
           setStormLevel(segs[0].storm_level || 0)
         }
         const positions = await pb.collection('race_positions').getFullList({
-          filter: `race_id="${RACE_ID}"`,
+          filter: `race_id="${raceId}"`,
         })
         setPlayerCount(positions.length)
       } catch (e) {}
@@ -52,7 +54,7 @@ export default function GodModePage() {
     try {
       const pb = getPocketBase()
       const segs = await pb.collection('weather_segments').getFullList({
-        filter: `race_id="${RACE_ID}"`, sort: 'from_cp_index',
+        filter: `race_id="${raceId}"`, sort: 'from_cp_index',
       })
       for (const seg of segs) {
         await pb.collection('weather_segments').update(seg.id, {
@@ -69,7 +71,7 @@ export default function GodModePage() {
       const pb = getPocketBase()
       const updates: any = { status }
       if (status === 'active') updates.actual_start = new Date().toISOString()
-      await pb.collection('races').update(RACE_ID, updates)
+      await pb.collection('races').update(raceId, updates)
       setRaceStatus(status)
       flash(`Verseny: ${status}`)
     } catch (e) { flash('Hiba', true) }
@@ -80,7 +82,7 @@ export default function GodModePage() {
     try {
       const pb = getPocketBase()
       const positions = await pb.collection('race_positions').getFullList({
-        filter: `race_id="${RACE_ID}"`,
+        filter: `race_id="${raceId}"`,
       })
       for (const p of positions) {
         await pb.collection('race_positions').delete(p.id)
