@@ -172,7 +172,7 @@ export function RaceChart() {
         <button
           onClick={toggleFollow}
           style={{
-            position: 'absolute', bottom: '12px', right: '12px', zIndex: 1000,
+            position: 'absolute', bottom: '40px', right: '12px', zIndex: 1000,
             background: following ? 'var(--secondary)' : 'var(--card)',
             color: following ? 'var(--secondary-foreground)' : 'var(--foreground)',
             border: '1px solid var(--border)', borderRadius: '4px',
