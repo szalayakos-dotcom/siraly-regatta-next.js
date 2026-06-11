@@ -64,7 +64,8 @@ export default function Page() {
   const [hasStarted, setHasStarted] = useState(false)
   const [startedAt, setStartedAt] = useState<number | null>(null)
   const [elapsedStr, setElapsedStr] = useState<string>('00:00')
-  const [penaltySec, setPenaltySec] = useState<number>(0)
+  const [penaltyUntil, setPenaltyUntil] = useState<number | null>(null)
+  const [penaltyRemainingSec, setPenaltyRemainingSec] = useState<number>(0)
   const alertedRef = useRef<Set<string>>(new Set())
 
   function playHorn() {
@@ -121,7 +122,7 @@ export default function Page() {
             const pr = await pb.collection('player_races').getFirstListItem(
               `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`
             )
-            setPenaltySec(pr.total_time_penality || 0)
+            setPenaltyUntil(pr.penalty_until ? new Date(pr.penalty_until).getTime() : null)
             if (pr.started_at) {
               setHasStarted(true)
               setStartedAt(new Date(pr.started_at).getTime())
@@ -155,6 +156,18 @@ export default function Page() {
     }, 1000)
     return () => clearInterval(interval)
   }, [hasStarted, startedAt])
+
+  // Büntetés visszaszámláló — a penalty_until-ig hátralevő idő (konzol: "BÜNTETÉS 0:54")
+  useEffect(() => {
+    if (!penaltyUntil) { setPenaltyRemainingSec(0); return }
+    const update = () => {
+      const rem = Math.ceil((penaltyUntil - Date.now()) / 1000)
+      setPenaltyRemainingSec(rem > 0 ? rem : 0)
+    }
+    update()
+    const i = setInterval(update, 1000)
+    return () => clearInterval(i)
+  }, [penaltyUntil])
 
   // Start countdown
   useEffect(() => {
@@ -242,15 +255,17 @@ export default function Page() {
         `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`
       )
       const now = Date.now()
-      // Korai rajt: a hivatalos start (T-0) ELŐTT nyomta meg → +1 perc (60 mp) büntetés
+      // Korai rajt: a pisztoly (scheduledStart, T-0) ELŐTT nyomta meg → +60 mp büntetés,
+      // a PISZTOLYTÓL számolva (penalty_until = T-0 + 60mp) → nincs kihasználás.
       const early = scheduledStart != null && now < scheduledStart
       const updates: Record<string, any> = { started_at: new Date(now).toISOString() }
       if (early) {
-        const newPenalty = (pr.total_time_penality || 0) + 60
-        updates.total_time_penality = newPenalty
-        setPenaltySec(newPenalty)
+        updates.total_time_penality = (pr.total_time_penality || 0) + 60  // rekord
+        const until = scheduledStart! + 60000
+        updates.penalty_until = new Date(until).toISOString()
+        setPenaltyUntil(until)
       } else {
-        setPenaltySec(pr.total_time_penality || 0)
+        setPenaltyUntil(pr.penalty_until ? new Date(pr.penalty_until).getTime() : null)
       }
       await pb.collection('player_races').update(pr.id, updates)
       setHasStarted(true)
@@ -431,9 +446,9 @@ export default function Page() {
         <div className="border-b border-[oklch(0.42_0.04_248)] bg-[linear-gradient(180deg,oklch(0.22_0.03_250),oklch(0.16_0.025_250))] px-4 py-4">
           <StartConsole
             startState={startState}
-            countdown={hasStarted ? 'ELRAJTOLT' : countdown}
+            countdown={countdown}
             hasStarted={hasStarted}
-            penaltySec={penaltySec}
+            penaltyRemainingSec={penaltyRemainingSec}
             onStart={handleStart}
           />
         </div>

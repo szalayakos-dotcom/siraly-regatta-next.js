@@ -6,7 +6,7 @@ interface StartConsoleProps {
   startState: 'waiting' | 'ready' | 'started' | 'expired'
   countdown: string
   hasStarted: boolean
-  penaltySec?: number
+  penaltyRemainingSec?: number
   onStart: () => void
 }
 
@@ -35,11 +35,16 @@ function phaseFromCountdown(countdown: string, startState: string): { label: str
   return { label: 'ELŐKÉSZÜLET', armed: false }
 }
 
-export function StartConsole({ startState, countdown, hasStarted, penaltySec = 0, onStart }: StartConsoleProps) {
+export function StartConsole({ startState, countdown, hasStarted, penaltyRemainingSec = 0, onStart }: StartConsoleProps) {
   const armed = startState === 'ready' && !hasStarted
+  const serving = hasStarted && penaltyRemainingSec > 0
   const phase = hasStarted
-    ? { label: 'VERSENYBEN', armed: false }
+    ? (serving ? { label: 'BÜNTETÉS', armed: false } : { label: 'VERSENYBEN', armed: false })
     : phaseFromCountdown(countdown, startState)
+  // LCD-n megjelenő érték: rajt előtt a countdown, rajt után BÜNTETÉS visszaszámláló majd ELRAJTOLT
+  const display = hasStarted
+    ? (serving ? fmtPenalty(penaltyRemainingSec) : 'ELRAJTOLT')
+    : (countdown || '--:--')
 
   return (
     <div className="instrument-bezel relative mx-auto flex w-full max-w-2xl items-center justify-between gap-5 px-5 py-4">
@@ -56,15 +61,11 @@ export function StartConsole({ startState, countdown, hasStarted, penaltySec = 0
         </span>
         <div className="lcd-screen lcd-amber flex items-center justify-between px-3 py-2">
           <span className="label-caps text-[10px] opacity-80">{phase.label}</span>
-          <span className="flex items-baseline gap-2">
-            {hasStarted && penaltySec > 0 && (
-              <span className="label-caps text-[11px] font-bold text-[oklch(0.65_0.22_28)]">
-                +{fmtPenalty(penaltySec)}
-              </span>
-            )}
-            <span className="text-2xl font-bold tabular-nums tracking-wider">
-              {countdown || '--:--'}
-            </span>
+          <span
+            className="text-2xl font-bold tabular-nums tracking-wider"
+            style={serving ? { color: 'oklch(0.72 0.2 28)' } : undefined}
+          >
+            {display}
           </span>
         </div>
         {/* Fázis-lámpák */}
@@ -110,7 +111,7 @@ export function StartConsole({ startState, countdown, hasStarted, penaltySec = 0
           </span>
         </button>
         <span className="label-caps text-[8px] text-[oklch(0.45_0.03_250)]">
-          {hasStarted ? 'Elindultál' : armed ? 'Nyomd meg!' : 'Zárolva'}
+          {hasStarted ? (serving ? 'Büntetésben' : 'Elindultál') : armed ? 'Nyomd meg!' : 'Zárolva'}
         </span>
       </div>
     </div>

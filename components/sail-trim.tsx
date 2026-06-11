@@ -10,6 +10,9 @@ import type { WarningState as WS } from '@/components/warning-panel'
 import { cn } from '@/lib/utils'
 import { TrimFader } from '@/components/trim-fader'
 
+// Vitorlacsere büntetés másodpercben — EGY helyen, hogy a felirat és az érték ne csússzon szét
+const SAIL_CHANGE_PENALTY_SEC = 30
+
 export interface SailState {
   gross: boolean
   fock: boolean
@@ -200,7 +203,7 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
   }
 
   async function confirmSailChange() {
-    if (!confirm('Vitorlacsere menet közben: 60 perc penalty. Folytatod?')) return
+    if (!confirm(`Vitorlacsere menet közben: ${SAIL_CHANGE_PENALTY_SEC} mp időbüntetés. Folytatod?`)) return
     try {
       const pb = getPocketBase()
       if (pb.authStore.isValid) {
@@ -208,8 +211,15 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
           filter: `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`,
         })
         if (pr.items.length) {
-          await pb.collection('player_races').update(pr.items[0].id, {
-            total_time_penalty: (pr.items[0].total_time_penalty || 0) + 60
+          const cur = pr.items[0]
+          const now = Date.now()
+          // A büntetést innen töltjük le: a hajó ott áll meg, ahol épp van.
+          // Ha már fut egy büntetés, annak a végéhez adjuk (egymásra rakódnak).
+          const prevUntil = cur.penalty_until ? new Date(cur.penalty_until).getTime() : 0
+          const until = Math.max(now, prevUntil) + SAIL_CHANGE_PENALTY_SEC * 1000
+          await pb.collection('player_races').update(cur.id, {
+            total_time_penality: (cur.total_time_penality || 0) + SAIL_CHANGE_PENALTY_SEC,
+            penalty_until: new Date(until).toISOString(),
           })
         }
       }
@@ -291,7 +301,7 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
             </div>
             <button onClick={confirmSailChange}
               style={{ background: 'var(--foreground)', color: 'var(--background)', border: 'none', borderRadius: '4px', padding: '10px', fontFamily: 'var(--font-heading)', fontWeight: 900, fontSize: '12px', letterSpacing: '2px', cursor: 'pointer', marginTop: '4px' }}>
-              CSERE — 60p
+              CSERE — {SAIL_CHANGE_PENALTY_SEC}mp
             </button>
           </div>
         </div>
