@@ -25,6 +25,7 @@ const stormColor = ['text-secondary', 'text-accent', 'text-destructive']
 export function ConditionsForecast() {
   const [segments, setSegments] = useState<Segment[]>([])
   const [checkpoints, setCheckpoints] = useState<Record<number, string>>({})
+  const [currentCpIndex, setCurrentCpIndex] = useState(0)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => { setMounted(true) }, [])
@@ -48,6 +49,16 @@ export function ConditionsForecast() {
         cps.forEach(cp => { cpMap[cp.order_index] = cp.name })
         setCheckpoints(cpMap)
         setSegments(segs.map(s => ({ ...s, name: cpMap[s.from_cp_index] })))
+
+        // Aktuális CP index lekérése
+        if (pb.authStore.isValid) {
+          try {
+            const pos = await pb.collection('race_positions').getFirstListItem(
+              `race_id="${RACE_ID}" && player_id="${pb.authStore.record?.id}"`
+            )
+            setCurrentCpIndex(pos.cp_index || 0)
+          } catch {}
+        }
       } catch (e) {}
     }
 
@@ -67,12 +78,14 @@ export function ConditionsForecast() {
           <div key={seg.from_cp_index}
             className={cn(
               'flex items-center gap-3 rounded-sm border border-border bg-background/60 px-3 py-2',
-              i === 0 && 'border-secondary/50 bg-secondary/5'
+              seg.from_cp_index <= currentCpIndex && (i === segments.length - 1 || segments[i+1]?.from_cp_index > currentCpIndex) && 'border-secondary/50 bg-secondary/5'
             )}>
             <div className="min-w-0 flex-1">
               <p className="font-heading text-xs font-semibold text-foreground">
                 {seg.name || `${seg.from_cp_index}. szakasz`}
-                {i === 0 && <span className="ml-2 text-[9px] text-secondary">● AKTUÁLIS</span>}
+                {seg.from_cp_index <= currentCpIndex && (i === segments.length - 1 || segments[i+1]?.from_cp_index > currentCpIndex) && (
+                  <span className="ml-2 text-[9px] text-secondary">● AKTUÁLIS</span>
+                )}
               </p>
             </div>
             <div className="flex items-center gap-3 shrink-0">

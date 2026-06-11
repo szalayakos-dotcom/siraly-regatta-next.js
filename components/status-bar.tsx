@@ -52,11 +52,6 @@ export function StatusBar() {
           } catch {}
         }
 
-        const segs = await pb.collection('weather_segments').getFullList({
-          filter: `race_id="${RACE_ID}"`, sort: 'from_cp_index',
-        })
-        if (segs.length) setWindSpeed(Math.round(kmhToKnots(segs[0].wind_speed) * 10) / 10)
-
         if (pb.authStore.isValid) {
           setUsername(pb.authStore.record?.name || pb.authStore.record?.email || '')
           const pr = await pb.collection('player_races').getList(1, 1, {
@@ -69,7 +64,12 @@ export function StatusBar() {
             }
           }
         }
-        // Saját pozíció sebessége
+
+        const segs = await pb.collection('weather_segments').getFullList({
+          filter: `race_id="${RACE_ID}"`, sort: 'from_cp_index',
+        })
+
+        // Saját pozíció sebessége és CP index
         if (pb.authStore.isValid) {
           try {
             const pos = await pb.collection('race_positions').getFirstListItem(
@@ -77,7 +77,17 @@ export function StatusBar() {
             )
             setSpeed(Math.round(kmhToKnots(pos.speed_kmh || 0) * 10) / 10)
             setHeading(pos.heading_deg || 247)
-          } catch {}
+            // Aktuális szegmens a CP index alapján
+            if (segs.length) {
+              const cpIdx = pos.cp_index || 0
+              const seg = [...segs].reverse().find((s: any) => s.from_cp_index <= cpIdx) || segs[0]
+              setWindSpeed(Math.round(kmhToKnots(seg.wind_speed) * 10) / 10)
+            }
+          } catch {
+            if (segs.length) setWindSpeed(Math.round(kmhToKnots(segs[0].wind_speed) * 10) / 10)
+          }
+        } else {
+          if (segs.length) setWindSpeed(Math.round(kmhToKnots(segs[0].wind_speed) * 10) / 10)
         }
       } catch (e) {}
     }
