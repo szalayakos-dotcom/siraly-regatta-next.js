@@ -60,8 +60,9 @@ export function FleetStandings() {
     }
 
     load()
+    const interval = setInterval(load, 10000)
     const unsub = pb.collection('race_positions').subscribe('*', () => load())
-    return () => { unsub.then(fn => fn()) }
+    return () => { clearInterval(interval); unsub.then(fn => fn()) }
   }, [])
 
   return (
