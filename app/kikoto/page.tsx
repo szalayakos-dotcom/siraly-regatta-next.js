@@ -140,6 +140,8 @@ export default function KikotoPage() {
   const [mounted, setMounted] = useState(false)
   const [authModal, setAuthModal] = useState<'login'|'register'|null>(null)
   const [chatMsgs, setChatMsgs] = useState<ChatMsg[]>([])
+  const [userFinished, setUserFinished] = useState(false)
+  const [canEnterDeck, setCanEnterDeck] = useState(false)
   const [chatInput, setChatInput] = useState('')
   const chatEndRef = useRef<HTMLDivElement>(null)
 
@@ -215,6 +217,33 @@ export default function KikotoPage() {
             filter: `player_id="${pb.authStore.record?.id}"`,
           })
           setMyRaces(myEntries.map((e: any) => e.race_id))
+
+          // Fedélzet hozzáférés ellenőrzése
+          const activeRaces = await pb.collection('races').getFullList({
+            filter: "status='active' || status='published'",
+          })
+          let canEnter = false
+          let finished = false
+          for (const race of activeRaces) {
+            const joined = myEntries.some((e: any) => e.race_id === race.id)
+            if (joined) {
+              try {
+                const pos = await pb.collection('race_positions').getFirstListItem(
+                  `race_id="${race.id}" && player_id="${pb.authStore.record?.id}"`
+                )
+                if (pos.status === 'finished') {
+                  finished = true
+                } else {
+                  canEnter = true
+                }
+              } catch {
+                // Nincs még pozíció de be van nevezve — még indulhat
+                if (race.status === 'active') canEnter = true
+              }
+            }
+          }
+          setUserFinished(finished)
+          setCanEnterDeck(canEnter)
         }
       } catch (e) {}
     }
@@ -361,7 +390,7 @@ export default function KikotoPage() {
   async function joinRace(race: Race) {
     const pb = getPocketBase()
     if (!pb.authStore.isValid) { setAuthModal("login"); return }
-    if (myRaces.includes(race.id)) { router.push('/dashboard'); return }
+    if (myRaces.includes(race.id) && canEnterDeck) { router.push('/dashboard'); return }
     router.push(`/entry/${race.id}`)
   }
 
@@ -458,8 +487,9 @@ export default function KikotoPage() {
               {isLoggedIn ? (
                 <>
                   <span className="label-caps rounded-md bg-secondary/15 px-2 py-1 text-[9px] text-secondary">{credits} kr</span>
-                  <button onClick={() => router.push('/dashboard')}
-                    className="flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 font-heading text-xs font-semibold text-background transition-colors hover:bg-secondary">
+                  <button onClick={() => canEnterDeck ? router.push('/dashboard') : undefined}
+                    disabled={!canEnterDeck}
+                    className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 font-heading text-xs font-semibold transition-colors ${canEnterDeck ? 'bg-foreground text-background hover:bg-secondary cursor-pointer' : 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'}`}>
                     Fedélzet <ChevronRight className="size-3"/>
                   </button>
                   <button onClick={() => { getPocketBase().authStore.clear(); setIsLoggedIn(false); setUsername(''); setCredits(0) }}
@@ -521,6 +551,7 @@ export default function KikotoPage() {
                 joined={myRaces.includes(selectedRace.id)}
                 onJoin={() => joinRace(selectedRace)}
                 topStanding={standings[0]}
+                canEnterDeck={canEnterDeck}
               />
 
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -652,11 +683,11 @@ export default function KikotoPage() {
 
 /* ---- Adaptív verseny-fej: countdown (rajt előtt) vagy élő futamidő ---- */
 function RaceHero({
-  race, isActive, isStarted, elapsed, countdown, joined, onJoin, topStanding,
+  race, isActive, isStarted, elapsed, countdown, joined, onJoin, topStanding, canEnterDeck,
 }: {
   race: Race; isActive: boolean; isStarted: boolean; elapsed: string
   countdown: { d: number; h: number; m: number; s: number; done: boolean }
-  joined: boolean; onJoin: () => void; topStanding?: any
+  joined: boolean; onJoin: () => void; topStanding?: any; canEnterDeck: boolean
 }) {
   return (
     <div className="relative overflow-hidden rounded-lg border border-border bg-foreground text-background">
@@ -709,8 +740,9 @@ function RaceHero({
             </div>
           ) : null}
 
-          <button onClick={onJoin}
-            className={`mt-3 flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 font-heading text-sm font-semibold transition-colors ${joined ? 'bg-secondary text-secondary-foreground hover:bg-secondary/80' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}>
+          <button onClick={joined && canEnterDeck ? onJoin : (!joined ? onJoin : undefined)}
+            disabled={joined && !canEnterDeck}
+            className={`mt-3 flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 font-heading text-sm font-semibold transition-colors ${joined && canEnterDeck ? 'bg-secondary text-secondary-foreground hover:bg-secondary/80' : joined && !canEnterDeck ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}>
             {joined ? <><Ship className="size-4"/>Fedélzetre</> : <><Flag className="size-4"/>Nevezés a futamra</>}
           </button>
         </div>
