@@ -60,6 +60,17 @@ function AuthModal({ mode, onClose, onSuccess }: { mode: 'login'|'register', onC
         if (!name) { setErr('Add meg a neved!'); setLoading(false); return }
         await pb.collection('users').create({ email, password, passwordConfirm: password, name })
         await pb.collection('users').authWithPassword(email, password)
+        // Profil létrehozása
+        try {
+          await pb.collection('player_profiles').create({
+            player_id: pb.authStore.record?.id,
+            display_name: name,
+            credits: 500,
+            xp: 0,
+            total_races: 0,
+            total_wins: 0,
+          })
+        } catch {}
       } else {
         await pb.collection('users').authWithPassword(email, password)
       }
