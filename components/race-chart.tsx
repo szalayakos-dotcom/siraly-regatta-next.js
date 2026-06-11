@@ -42,10 +42,11 @@ export function RaceChart() {
         if (race.course_id) {
           const course = await pb.collection('courses').getOne(race.course_id)
           const points = typeof course.points === 'string' ? JSON.parse(course.points || '[]') : (course.points || [])
-          const mainPts = points.filter((p: any) => p.type === 'start' || p.type === 'checkpoint' || p.type === 'finish')
+          const allPts = points
+            .filter((p: any) => p.type === 'start' || p.type === 'waypoint' || p.type === 'checkpoint' || p.type === 'finish')
             .sort((a: any, b: any) => a.order - b.order)
-          mainPts.forEach((cp: any) => {
-            const color = cp.type === 'start' ? '#c42b1c' : cp.type === 'finish' ? '#c8a030' : '#2a6a7a'
+          allPts.forEach((cp: any) => {
+            const color = cp.type === 'start' ? '#c42b1c' : cp.type === 'finish' ? '#c8a030' : cp.type === 'waypoint' ? '#888' : '#2a6a7a'
             const icon = L.divIcon({
               html: `<div style="background:${color};color:#fff;font-size:9px;padding:2px 5px;font-family:sans-serif;font-weight:700;white-space:nowrap;box-shadow:1px 1px 4px rgba(0,0,0,0.4)">${cp.name}</div>`,
               className: '',
@@ -53,8 +54,8 @@ export function RaceChart() {
             })
             L.marker([cp.lat, cp.lng], { icon }).addTo(map)
           })
-          if (mainPts.length > 1) {
-            L.polyline(mainPts.map((c: any) => [c.lat, c.lng] as [number, number]), {
+          if (allPts.length > 1) {
+            L.polyline(allPts.map((c: any) => [c.lat, c.lng] as [number, number]), {
               color: '#c42b1c', weight: 2, opacity: 0.5, dashArray: '6 5',
             }).addTo(map)
           }
