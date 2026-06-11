@@ -149,25 +149,14 @@ export default function CoursesPage() {
         markersRef.current.push(marker)
       })
 
-      // Útvonal vonalak
+      // Útvonal vonalak — egy piros vonal az összes ponton át order szerint
       if (points.length > 1) {
-        // Checkpoint és finish vonalak (piros)
+        const sortedPts = [...points].sort((a, b) => a.order - b.order)
         const mainLine = L.polyline(
-          points.filter(p => p.type !== 'waypoint').map(p => [p.lat, p.lng] as [number,number]),
+          sortedPts.map(p => [p.lat, p.lng] as [number,number]),
           { color: '#c42b1c', weight: 2, opacity: 0.7, dashArray: '6 4' }
         ).addTo(map)
         polylinesRef.current.push(mainLine)
-
-        // Waypoint vonalak (szürke)
-        for (let i = 1; i < points.length; i++) {
-          if (points[i].type === 'waypoint' || points[i-1].type === 'waypoint') {
-            const wpLine = L.polyline(
-              [[points[i-1].lat, points[i-1].lng], [points[i].lat, points[i].lng]],
-              { color: '#8a7a5a', weight: 1.5, opacity: 0.5, dashArray: '3 4' }
-            ).addTo(map)
-            polylinesRef.current.push(wpLine)
-          }
-        }
       }
     })
   }, [points])
