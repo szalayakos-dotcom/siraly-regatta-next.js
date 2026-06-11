@@ -15,7 +15,6 @@ export function StatusBar() {
   const [windSpeed, setWindSpeed] = useState(0)
   const [heading, setHeading] = useState(247)
   const [credits, setCredits] = useState(0)
-  const [username, setUsername] = useState('')
   const [mounted, setMounted] = useState(false)
   const [speed, setSpeed] = useState(0)
 
@@ -60,7 +59,6 @@ export function StatusBar() {
         }
 
         if (pb.authStore.isValid) {
-          setUsername(pb.authStore.record?.name || pb.authStore.record?.email || '')
           const pr = await pb.collection('player_races').getList(1, 1, {
             filter: `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`,
           })
@@ -122,11 +120,7 @@ export function StatusBar() {
           <p className="label-caps text-[9px]" style={{ color: 'rgba(253,249,224,0.7)' }}>{raceStage}</p>
         </div>
       </div>
-      {username && (
-        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
-          <span className="font-heading text-sm font-bold uppercase tracking-wider" style={{ color: '#fdf9e0', fontWeight: 700 }}>{username}</span>
-        </div>
-      )}
+
       <div className="flex items-stretch gap-1">
         {[
           { icon: Clock,      label: 'Versenyidő', value: raceTime,           sub: 'eltelt' },
