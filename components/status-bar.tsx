@@ -41,7 +41,11 @@ export function StatusBar() {
       try {
         const race = await pb.collection('races').getOne(RACE_ID)
         setRaceName(race.name)
-        if (race.actual_start) setRaceStart(new Date(race.actual_start).getTime())
+        if (race.actual_start) {
+          setRaceStart(new Date(race.actual_start).getTime())
+        } else if (race.scheduled_start) {
+          setRaceStart(new Date(race.scheduled_start).getTime())
+        }
         if (race.course_id) {
           try {
             const course = await pb.collection('courses').getOne(race.course_id)
@@ -59,9 +63,6 @@ export function StatusBar() {
           })
           if (pr.items.length) {
             setCredits(pr.items[0].credits || 0)
-            if (!race.actual_start && pr.items[0].joined_at) {
-              setRaceStart(new Date(pr.items[0].joined_at).getTime())
-            }
           }
         }
 
