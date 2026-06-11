@@ -11,7 +11,7 @@ interface SailState {
   gross: boolean; fock: boolean; genua: boolean; spinn: boolean; genakker: boolean
 }
 
-interface CheckpointOverlayProps {
+interface WaypointOverlayProps {
   cpIndex: number
   cpName: string
   onClose: () => void
@@ -38,7 +38,7 @@ function SailBtn({ label, active, onClick, color = 'secondary' }: { label: strin
   )
 }
 
-export function CheckpointOverlay({ cpIndex, cpName, onClose, sails, onSailChange }: CheckpointOverlayProps) {
+export function WaypointOverlay({ cpIndex, cpName, onClose, sails, onSailChange }: WaypointOverlayProps) {
   const [elapsedSec, setElapsedSec] = useState(0)
   const [totalSec, setTotalSec] = useState(0)
   const [position, setPosition] = useState<number | null>(null)
@@ -82,11 +82,9 @@ export function CheckpointOverlay({ cpIndex, cpName, onClose, sails, onSailChang
         const myIdx = positions.findIndex((p: any) => p.player_id === myId)
         if (myIdx >= 0) setPosition(myIdx + 1)
 
-        // CP kredit/XP — csak checkpoint elérésekor, nem a rajtnál
-        if (cpIndex > 0) {
-          setEarnedCredits(10)
-          setEarnedXp(25)
-        }
+        // Waypoint — nincs kredit/XP
+        setEarnedCredits(0)
+        setEarnedXp(0)
       } catch {}
     }
 
@@ -135,7 +133,7 @@ export function CheckpointOverlay({ cpIndex, cpName, onClose, sails, onSailChang
         }}>
           <div>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: '11px', letterSpacing: '3px', color: 'var(--background)', opacity: 0.6 }}>
-              ⚓ IDŐMÉRŐ BÓLYA
+              ⚓ BÓLYA
             </div>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: '22px', fontWeight: 900, color: 'var(--background)', letterSpacing: '1px' }}>
               {cpName || `CP ${cpIndex}`}

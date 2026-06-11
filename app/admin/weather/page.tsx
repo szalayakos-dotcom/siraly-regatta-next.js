@@ -67,13 +67,16 @@ export default function WeatherPage() {
       markersRef.current = []
       overlaysRef.current = []
 
-      const mainPts = coursePoints.filter(p => p.type !== 'waypoint')
+      const mainPts = coursePoints
+        .filter(p => p.type === 'start' || p.type === 'waypoint' || p.type === 'checkpoint' || p.type === 'finish')
+        .sort((a, b) => a.order - b.order)
 
       // Pontok
       mainPts.forEach((pt, i) => {
         const isStart = pt.type === 'start'
         const isFinish = pt.type === 'finish'
-        const color = isStart ? '#c42b1c' : isFinish ? '#c8a030' : '#2a6a7a'
+        const isWaypoint = pt.type === 'waypoint'
+        const color = isStart ? '#c42b1c' : isFinish ? '#c8a030' : isWaypoint ? '#888' : '#2a6a7a'
         const icon = L.divIcon({
           html: `<div style="background:${color};color:#fff;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.4)">${i+1}</div>`,
           className: '', iconAnchor: [15,15],
@@ -148,7 +151,9 @@ export default function WeatherPage() {
       const course = await pb.collection('courses').getOne(race.course_id)
       const points: CoursePoint[] = typeof course.points === 'string' ? JSON.parse(course.points || '[]') : (course.points || [])
       setCoursePoints(points)
-      const mainPts = points.filter(p => p.type !== 'waypoint')
+      const mainPts = points
+        .filter(p => p.type === 'start' || p.type === 'waypoint' || p.type === 'checkpoint' || p.type === 'finish')
+        .sort((a: any, b: any) => a.order - b.order)
 
       // Meglévő szegmensek
       const existing = await pb.collection('weather_segments').getFullList({
