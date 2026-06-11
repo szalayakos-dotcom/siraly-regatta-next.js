@@ -18,7 +18,7 @@ export function getPocketBase(): PocketBase {
   return browserClient
 }
 
-export const RACE_ID = 'tc2i3g1ahz7u7di'
+export const RACE_ID = '689289tppw6kq9h'
 
 // Típusok
 export interface Race {
