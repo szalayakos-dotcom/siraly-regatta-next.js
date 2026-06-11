@@ -219,6 +219,11 @@ export default function KikotoPage() {
           setMyRaces(myEntries.map((e: any) => e.race_id))
 
           // Fedélzet hozzáférés ellenőrzése
+          const currentUser = pb.authStore.record
+          if (currentUser?.role === 'admin') {
+            setCanEnterDeck(true)
+            setUserFinished(false)
+          } else {
           const activeRaces = await pb.collection('races').getFullList({
             filter: "status='active' || status='published'",
           })
@@ -244,6 +249,7 @@ export default function KikotoPage() {
           }
           setUserFinished(finished)
           setCanEnterDeck(canEnter)
+          }
         }
       } catch (e) {}
     }
