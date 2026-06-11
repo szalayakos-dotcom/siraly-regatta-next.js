@@ -61,9 +61,13 @@ export function StatusBar() {
           const pr = await pb.collection('player_races').getList(1, 1, {
             filter: `race_id="${RACE_ID}" && player_id="${pb.authStore.record?.id}"`,
           })
-          if (pr.items.length) {
-            setCredits(pr.items[0].credits || 0)
-          }
+          // Kredit a player_profiles-ból
+          try {
+            const profile = await pb.collection('player_profiles').getFirstListItem(
+              `player_id="${pb.authStore.record?.id}"`
+            )
+            setCredits(profile.credits || 0)
+          } catch {}
         }
 
         const segs = await pb.collection('weather_segments').getFullList({
