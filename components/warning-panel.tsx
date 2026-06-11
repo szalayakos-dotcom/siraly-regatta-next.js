@@ -10,6 +10,7 @@ export interface WarningState {
   vitorla: boolean         // van-e vitorla fent
   tuldoles: boolean        // heel > 25°
   trimEfficiency: number   // 0-100
+  raceAlert?: 'T10' | 'T5' | 'T4' | 'T1' | null  // rajt figyelmeztetés
 }
 
 interface LampProps {
@@ -151,6 +152,12 @@ export function WarningPanel({ warnings }: WarningPanelProps) {
       icon: '✓',
       label: 'Trim',
       state: warnings.trimEfficiency === 0 ? 'blink-red' : warnings.trimEfficiency >= 75 ? 'green' : warnings.trimEfficiency >= 40 ? 'active-amber' : 'active-red',
+    },
+    {
+      id: 'rajt',
+      icon: '🚨',
+      label: warnings.raceAlert ? `RAJT ${warnings.raceAlert}` : 'RAJT',
+      state: warnings.raceAlert ? 'blink-red' : 'off',
     },
   ]
 

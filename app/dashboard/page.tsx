@@ -38,7 +38,7 @@ export default function Page() {
   const [raceStatus, setRaceStatus] = useState('active')
   const [warnings, setWarnings] = useState<WarningState>({
     vihar: 0, leszuras: false, drift: 0,
-    vitorla: true, tuldoles: false, trimEfficiency: 0,
+    vitorla: true, tuldoles: false, trimEfficiency: 0, raceAlert: null,
   })
 
   // Trim snapshot ref — mindig friss értéket tárol a tick számára
@@ -52,6 +52,12 @@ export default function Page() {
   const [scheduledStart, setScheduledStart] = useState<number | null>(null)
   const [countdown, setCountdown] = useState<string>('')
   const [hasStarted, setHasStarted] = useState(false)
+  const alertedRef = useRef<Set<string>>(new Set())
+
+  function playHorn() {
+    const audio = new Audio('/sounds/horn.mp3')
+    audio.play().catch(() => {})
+  }
 
   const [heel, setHeel] = useState(0)
 
@@ -100,6 +106,32 @@ export default function Page() {
       const diff = scheduledStart - now
       const fifteenMin = 15 * 60 * 1000
       const fiveMin = 5 * 60 * 1000
+
+      // Rajt figyelmeztetések T-10, T-5, T-4, T-1
+      const minutes = Math.ceil(diff / 60000)
+      if (diff > 0) {
+        if (minutes === 10 && !alertedRef.current.has('T10')) {
+          alertedRef.current.add('T10')
+          playHorn()
+          setWarnings(w => ({ ...w, raceAlert: 'T10' }))
+          setTimeout(() => setWarnings(w => ({ ...w, raceAlert: null })), 5000)
+        } else if (minutes === 5 && !alertedRef.current.has('T5')) {
+          alertedRef.current.add('T5')
+          playHorn()
+          setWarnings(w => ({ ...w, raceAlert: 'T5' }))
+          setTimeout(() => setWarnings(w => ({ ...w, raceAlert: null })), 5000)
+        } else if (minutes === 4 && !alertedRef.current.has('T4')) {
+          alertedRef.current.add('T4')
+          playHorn()
+          setWarnings(w => ({ ...w, raceAlert: 'T4' }))
+          setTimeout(() => setWarnings(w => ({ ...w, raceAlert: null })), 5000)
+        } else if (minutes === 1 && !alertedRef.current.has('T1')) {
+          alertedRef.current.add('T1')
+          playHorn()
+          setWarnings(w => ({ ...w, raceAlert: 'T1' }))
+          setTimeout(() => setWarnings(w => ({ ...w, raceAlert: null })), 5000)
+        }
+      }
 
       if (diff < -fifteenMin) {
         // 15 perccel a rajt után még nem indult → kilép
