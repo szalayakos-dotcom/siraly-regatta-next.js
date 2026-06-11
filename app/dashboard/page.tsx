@@ -126,7 +126,7 @@ export default function Page() {
     checkStatus()
     const interval = setInterval(checkStatus, 10000)
     return () => clearInterval(interval)
-  }, [])
+  }, [raceId])
 
   // Elapsed timer — rajt után előre számol
   useEffect(() => {
