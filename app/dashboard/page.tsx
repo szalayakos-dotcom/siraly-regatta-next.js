@@ -64,6 +64,7 @@ export default function Page() {
   const [hasStarted, setHasStarted] = useState(false)
   const [startedAt, setStartedAt] = useState<number | null>(null)
   const [elapsedStr, setElapsedStr] = useState<string>('00:00')
+  const [penaltySec, setPenaltySec] = useState<number>(0)
   const alertedRef = useRef<Set<string>>(new Set())
 
   function playHorn() {
@@ -120,14 +121,20 @@ export default function Page() {
             const pr = await pb.collection('player_races').getFirstListItem(
               `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`
             )
-            if (pr.started_at) { setHasStarted(true); return }
+            setPenaltySec(pr.total_time_penality || 0)
+            if (pr.started_at) {
+              setHasStarted(true)
+              setStartedAt(new Date(pr.started_at).getTime())
+              return
+            }
           } catch {}
           // Ha van race_positions rekord → már elindult
           try {
-            await pb.collection('race_positions').getFirstListItem(
+            const pos = await pb.collection('race_positions').getFirstListItem(
               `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`
             )
             setHasStarted(true)
+            setStartedAt(new Date(pos.created).getTime())
           } catch {}
         }
       } catch {}
@@ -215,9 +222,12 @@ export default function Page() {
         setStartState('ready')
       } else {
         // Még várunk
-        const m = Math.floor(diff / 60000)
-        const s = Math.floor((diff % 60000) / 1000)
-        setCountdown(`-${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`)
+        const totalSec = Math.floor(diff / 1000)
+        const h = Math.floor(totalSec / 3600)
+        const mm = Math.floor((totalSec % 3600) / 60)
+        const ss = totalSec % 60
+        const pad = (n: number) => String(n).padStart(2, '0')
+        setCountdown(h > 0 ? `-${pad(h)}:${pad(mm)}:${pad(ss)}` : `-${pad(mm)}:${pad(ss)}`)
         setStartState('waiting')
       }
     }, 1000)
@@ -231,9 +241,20 @@ export default function Page() {
       const pr = await pb.collection('player_races').getFirstListItem(
         `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`
       )
-      await pb.collection('player_races').update(pr.id, { started_at: new Date().toISOString() })
+      const now = Date.now()
+      // Korai rajt: a hivatalos start (T-0) ELŐTT nyomta meg → +1 perc (60 mp) büntetés
+      const early = scheduledStart != null && now < scheduledStart
+      const updates: Record<string, any> = { started_at: new Date(now).toISOString() }
+      if (early) {
+        const newPenalty = (pr.total_time_penality || 0) + 60
+        updates.total_time_penality = newPenalty
+        setPenaltySec(newPenalty)
+      } else {
+        setPenaltySec(pr.total_time_penality || 0)
+      }
+      await pb.collection('player_races').update(pr.id, updates)
       setHasStarted(true)
-      setStartedAt(Date.now())
+      setStartedAt(now)
       setStartState('started')
     } catch {}
   }
@@ -410,8 +431,9 @@ export default function Page() {
         <div className="border-b border-[oklch(0.42_0.04_248)] bg-[linear-gradient(180deg,oklch(0.22_0.03_250),oklch(0.16_0.025_250))] px-4 py-4">
           <StartConsole
             startState={startState}
-            countdown={hasStarted ? `+${elapsedStr}` : countdown}
+            countdown={hasStarted ? 'ELRAJTOLT' : countdown}
             hasStarted={hasStarted}
+            penaltySec={penaltySec}
             onStart={handleStart}
           />
         </div>

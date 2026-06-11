@@ -6,7 +6,15 @@ interface StartConsoleProps {
   startState: 'waiting' | 'ready' | 'started' | 'expired'
   countdown: string
   hasStarted: boolean
+  penaltySec?: number
   onStart: () => void
+}
+
+// Büntetés formázása M:SS alakra
+function fmtPenalty(sec: number): string {
+  const m = Math.floor(sec / 60)
+  const s = sec % 60
+  return `${m}:${String(s).padStart(2, '0')}`
 }
 
 // Visszaszámláló-fázis a hátralevő másodpercekből (countdown formátum: "-MM:SS" vagy "+MM:SS")
@@ -14,8 +22,11 @@ function phaseFromCountdown(countdown: string, startState: string): { label: str
   if (startState === 'expired') return { label: 'LEJÁRT', armed: false }
   if (!countdown) return { label: 'KÉSZENLÉT', armed: false }
   const sign = countdown[0]
-  const [mm, ss] = countdown.slice(1).split(':').map(Number)
-  const totalSec = (mm || 0) * 60 + (ss || 0)
+  const parts = countdown.slice(1).split(':').map(Number)
+  // parts lehet [hh, mm, ss] (hosszú visszaszámlálás) vagy [mm, ss]
+  const totalSec = parts.length === 3
+    ? (parts[0] || 0) * 3600 + (parts[1] || 0) * 60 + (parts[2] || 0)
+    : (parts[0] || 0) * 60 + (parts[1] || 0)
   if (sign === '+') return { label: 'RAJT NYITVA', armed: true }
   if (totalSec <= 60) return { label: 'T-1 PERC', armed: true }
   if (totalSec <= 4 * 60) return { label: 'T-4 PERC', armed: true }
@@ -24,7 +35,7 @@ function phaseFromCountdown(countdown: string, startState: string): { label: str
   return { label: 'ELŐKÉSZÜLET', armed: false }
 }
 
-export function StartConsole({ startState, countdown, hasStarted, onStart }: StartConsoleProps) {
+export function StartConsole({ startState, countdown, hasStarted, penaltySec = 0, onStart }: StartConsoleProps) {
   const armed = startState === 'ready' && !hasStarted
   const phase = hasStarted
     ? { label: 'VERSENYBEN', armed: false }
@@ -45,8 +56,15 @@ export function StartConsole({ startState, countdown, hasStarted, onStart }: Sta
         </span>
         <div className="lcd-screen lcd-amber flex items-center justify-between px-3 py-2">
           <span className="label-caps text-[10px] opacity-80">{phase.label}</span>
-          <span className="text-2xl font-bold tabular-nums tracking-wider">
-            {countdown || '--:--'}
+          <span className="flex items-baseline gap-2">
+            {hasStarted && penaltySec > 0 && (
+              <span className="label-caps text-[11px] font-bold text-[oklch(0.65_0.22_28)]">
+                +{fmtPenalty(penaltySec)}
+              </span>
+            )}
+            <span className="text-2xl font-bold tabular-nums tracking-wider">
+              {countdown || '--:--'}
+            </span>
           </span>
         </div>
         {/* Fázis-lámpák */}
