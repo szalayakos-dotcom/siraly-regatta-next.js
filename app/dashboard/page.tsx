@@ -195,7 +195,7 @@ export default function Page() {
           ).then(pr => {
             pb.collection('player_races').delete(pr.id)
             // Nevezési díj visszaadása
-            pb.collection('player_profiles').getFirstListItem(`user_id="${pb.authStore.record?.id}"`).then(profile => {
+            pb.collection('player_profiles').getFirstListItem(`player_id="${pb.authStore.record?.id}"`).then(profile => {
               pb.collection('player_profiles').update(profile.id, { credits: (profile.credits || 0) + (pr.entry_fee || 0) })
             }).catch(() => {})
           }).catch(() => {})

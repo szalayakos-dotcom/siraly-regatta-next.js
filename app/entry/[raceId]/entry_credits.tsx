@@ -142,7 +142,7 @@ export default function EntryPage() {
         if (pb.authStore.isValid) {
           setIsLoggedIn(true)
           try {
-            const profile = await pb.collection('player_profiles').getFirstListItem(`user_id='${pb.authStore.record?.id}'`)
+            const profile = await pb.collection('player_profiles').getFirstListItem(`player_id='${pb.authStore.record?.id}'`)
             setCredits(profile.credits || 0)
           } catch {}
         }
@@ -227,7 +227,7 @@ export default function EntryPage() {
       // Kredit levonás player_profiles-ban
       if (totalCost > 0) {
         try {
-          const profile = await pb.collection('player_profiles').getFirstListItem(`user_id='${userId}'`)
+          const profile = await pb.collection('player_profiles').getFirstListItem(`player_id='${userId}'`)
           await pb.collection('player_profiles').update(profile.id, { credits: creditsAfter })
         } catch {}
       }
