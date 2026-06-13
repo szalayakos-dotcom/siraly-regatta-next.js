@@ -189,12 +189,11 @@ export function recommendSails(twa: number, tws: number): {
     return { gross: true, fock: tws >= 13.5, genua: tws < 13.5, spinn: false, genakker: false }
   }
 
-  // Félszél (61–100°) — gross + headsail + esetleg genakker könnyű szélben
+  // Félszél (61–100°) — gross + headsail. Genakker NEM való ide (bőszél-vitorla,
+  // oldalszélben drag) — csak raumtól (101°+) hatékony. Erős szélben fock, egyébként genua.
   if (abs <= 100) {
-    const genakker = tws < 12.0
     const fock = tws > 15.0
-    const genua = !fock
-    return { gross: true, fock, genua: genua && !genakker, spinn: false, genakker }
+    return { gross: true, fock, genua: !fock, spinn: false, genakker: false }
   }
 
   // Háromnegyedszél / raum (101–145°) — genakker erős szélig, felette fock
