@@ -89,6 +89,7 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
   const [hasFockroller, setHasFockroller] = useState(false)
   const [windDir, setWindDir] = useState(225)
   const [windSpeedKn, setWindSpeedKn] = useState(10)
+  const [heading, setHeading] = useState(0)
   const [credits, setCredits] = useState(0)
   const [trimEfficiency, setTrimEfficiency] = useState(0)
 
@@ -99,14 +100,29 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
   useEffect(() => {
     if (!mounted) return
     const pb = getPocketBase()
-    pb.collection('weather_segments').getFullList({
-      filter: `race_id="${raceId}"`, sort: 'from_cp_index',
-    }).then(segs => {
-      if (segs.length) {
-        setWindDir(segs[0].wind_dir)
-        setWindSpeedKn(kmhToKnots(segs[0].wind_speed))
+
+    function loadConditions() {
+      pb.collection('weather_segments').getFullList({
+        filter: `race_id="${raceId}"`, sort: 'from_cp_index',
+      }).then(segs => {
+        if (segs.length) {
+          setWindDir(segs[0].wind_dir)
+          setWindSpeedKn(kmhToKnots(segs[0].wind_speed))
+        }
+      }).catch(() => {})
+
+      // A hajó aktuális iránya (a következő bólya felé) — ebből számoljuk a VALÓDI szélszöget (TWA)
+      if (pb.authStore.isValid) {
+        pb.collection('race_positions').getFullList({
+          filter: `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`,
+        }).then(pos => {
+          if (pos.length && typeof pos[0].heading_deg === 'number') setHeading(pos[0].heading_deg)
+        }).catch(() => {})
       }
-    }).catch(() => {})
+    }
+
+    loadConditions()
+    const interval = setInterval(loadConditions, 10000)
 
     if (pb.authStore.isValid) {
       pb.collection('player_races').getList(1, 1, {
@@ -115,6 +131,8 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
         if (pr.items.length) setCredits(pr.items[0].credits || 0)
       }).catch(() => {})
     }
+
+    return () => clearInterval(interval)
   }, [mounted])
 
   // Optimális Trim — vitorlaválasztás (max 75%) + trim (extra 25%)
@@ -127,7 +145,10 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
       return
     }
 
-    const rec = recommendSails(windDir, windSpeedKn)
+    // Valódi szélszög (TWA) a hajó iránya és a szél közt — EZ kell a vitorla-ajánláshoz, nem a nyers windDir
+    const twa = ((windDir - heading + 180) % 360) - 180
+    const absTwa = Math.abs(twa)
+    const rec = recommendSails(absTwa, windSpeedKn)
     const sailMatch =
       rec.gross === sails.gross &&
       rec.fock === sails.fock &&
@@ -135,7 +156,7 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
       rec.spinn === sails.spinn &&
       rec.genakker === sails.genakker
 
-    const optimal = calcOptimalTrim(windDir, windSpeedKn)
+    const optimal = calcOptimalTrim(absTwa, windSpeedKn)
     const activeTrimKeys = [
       'mainsheet', 'boomvang', 'backstay', 'cunningham',
       ...(sails.fock || sails.genua ? ['jibtrim'] : []),
@@ -152,18 +173,16 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
     const base = sailMatch ? 75 : Math.max(20, 55 - (activeSailCount === 0 ? 55 : 0))
     const eff = Math.min(100, base + trimBonus)
     setTrimEfficiency(eff)
-    const rawTwa = windDir - 247
-    const twaForWarning = Math.abs(((rawTwa + 180) % 360) - 180)
     onWarningsChange?.({
       vihar: 0,
-      leszuras: twaForWarning > 150 && eff < 55 && (sails.spinn || sails.gross),
+      leszuras: absTwa > 150 && eff < 55 && (sails.spinn || sails.gross),
       drift: 0,
       vitorla: Object.values(sails).some(Boolean),
       tuldoles: false,
       trimEfficiency: eff,
     })
     onTrimChange?.({ sails, trim, windDir, windSpeedKn })
-  }, [trim, sails, windDir, windSpeedKn])
+  }, [trim, sails, windDir, windSpeedKn, heading])
 
   function toggle(sail: keyof SailState) {
     setSails(prev => {
@@ -183,9 +202,10 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
 
   async function buyOptimalTrim() {
     if (credits < 10) { alert('Nincs elég kredit. Optimális trim: 10 kr'); return }
-    const optimal = calcOptimalTrim(windDir, windSpeedKn)
+    const twa = Math.abs(((windDir - heading + 180) % 360) - 180)
+    const optimal = calcOptimalTrim(twa, windSpeedKn)
     setTrim(optimal)
-    const rec = recommendSails(windDir, windSpeedKn)
+    const rec = recommendSails(twa, windSpeedKn)
     setSails(rec)
     setCredits(c => c - 10)
     setTrimEfficiency(100)
