@@ -104,7 +104,7 @@ export default function Page() {
         })
       } catch {}
     }, 1000)
-  }, [])
+  }, [raceId])
 
   // Race status ellenőrzés
   useEffect(() => {
@@ -276,6 +276,7 @@ export default function Page() {
 
   // CP figyelés
   useEffect(() => {
+    if (!raceId) return
     const pb = getPocketBase()
     async function checkCp() {
       if (!pb.authStore.isValid) return
@@ -315,7 +316,7 @@ export default function Page() {
     checkCp()
     const interval = setInterval(checkCp, 5000)
     return () => clearInterval(interval)
-  }, [])
+  }, [raceId])
 
   // Engine tick
   useEffect(() => {
