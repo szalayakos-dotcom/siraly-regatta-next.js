@@ -106,6 +106,12 @@ export function RaceChart() {
         }))
 
         positions.forEach((pos: any) => {
+          // Érvénytelen koordinátát kihagyjuk — különben az L.marker hibát dob és EGYETLEN hajó sem rajzolódik ki
+          const lat = Number(pos.lat), lng = Number(pos.lng)
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+            console.warn('[RaceChart] érvénytelen pozíció, kihagyva:', pos.player_id, pos.lat, pos.lng)
+            return
+          }
           const isMine = pos.player_id === myId
           const size = isMine ? 32 : 22
           const info = infoMap[pos.player_id] || { name: 'Versenyző', boatName: '—', boatClass: '—', boatType: '—', pos: 0 }
@@ -128,24 +134,24 @@ export function RaceChart() {
           })
           if (isMine) {
             if (myMarkerRef.current) {
-              myMarkerRef.current.setLatLng([pos.lat, pos.lng])
+              myMarkerRef.current.setLatLng([lat, lng])
               myMarkerRef.current.setTooltipContent(tooltipHtml)
             } else {
-              myMarkerRef.current = L.marker([pos.lat, pos.lng], { icon }).addTo(map)
+              myMarkerRef.current = L.marker([lat, lng], { icon }).addTo(map)
               myMarkerRef.current.bindTooltip(tooltipHtml, { direction: 'top', offset: [0, -size/2], opacity: 0.95 })
             }
-            if (followingRef.current) map.panTo([pos.lat, pos.lng])
+            if (followingRef.current) map.panTo([lat, lng])
           } else {
             if (markersRef.current[pos.player_id]) {
-              markersRef.current[pos.player_id].setLatLng([pos.lat, pos.lng])
+              markersRef.current[pos.player_id].setLatLng([lat, lng])
               markersRef.current[pos.player_id].setTooltipContent(tooltipHtml)
             } else {
-              markersRef.current[pos.player_id] = L.marker([pos.lat, pos.lng], { icon }).addTo(map)
+              markersRef.current[pos.player_id] = L.marker([lat, lng], { icon }).addTo(map)
               markersRef.current[pos.player_id].bindTooltip(tooltipHtml, { direction: 'top', offset: [0, -size/2], opacity: 0.95 })
             }
           }
         })
-      } catch (e) {}
+      } catch (e) { console.error('[RaceChart] loadPositions hiba:', e) }
     }
 
     initMap()
@@ -155,6 +161,10 @@ export function RaceChart() {
         mapInstanceRef.current.remove()
         mapInstanceRef.current = null
       }
+      // Marker-ref-ek nullázása — különben újra-init után a régi (eltávolított) térkép
+      // markereit frissítenénk, és az új térképen egy hajó sem jelenne meg
+      markersRef.current = {}
+      myMarkerRef.current = null
     }
   }, [mounted, raceId])
 
