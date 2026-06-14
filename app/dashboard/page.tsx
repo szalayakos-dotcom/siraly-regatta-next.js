@@ -314,7 +314,8 @@ export default function Page() {
           }
         }
 
-        if (typeof pos.drift_angle === 'number') setHeel(pos.drift_angle * 3)
+        if (typeof pos.heel === 'number') setHeel(pos.heel)
+        else if (typeof pos.drift_angle === 'number') setHeel(pos.drift_angle * 3)
         const cp = pos.cp_index || 0
         if (cp > lastCpRef.current && lastCpRef.current >= 0) {
           // CP elért — overlay megnyitása
