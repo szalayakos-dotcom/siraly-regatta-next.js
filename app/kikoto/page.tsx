@@ -2,7 +2,7 @@
 
 import { Sidebar } from '@/components/sidebar'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, Fragment } from 'react'
 import { getPocketBase } from '@/lib/pocketbase'
 import { useRouter } from 'next/navigation'
 import { Flag, Ship, Anchor, Trophy, Calendar, Wind, Users, Send, ChevronRight, Radio, Medal } from 'lucide-react'
@@ -132,6 +132,10 @@ export default function KikotoPage() {
   const [selectedRace, setSelectedRace] = useState<Race | null>(null)
   const [myRaces, setMyRaces] = useState<string[]>([])
   const [standings, setStandings] = useState<any[]>([])
+  const [classCount, setClassCount] = useState(1)
+  const CLASS_LABELS: Record<string, string> = {
+    '9g4us1y1ye7afym': 'Ys.I', '40t0bopld7pwwo4': 'Ys.II', 'lgtakoks0p1jnvd': 'Ys.III',
+  }
   const [windSpeed, setWindSpeed] = useState(0)
   const [windDir, setWindDir] = useState(225)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -277,15 +281,7 @@ export default function KikotoPage() {
         const positions = await pb.collection('race_positions').getFullList({
           filter: `race_id="${selectedRace.id}"`,
         })
-        const sorted = positions.sort((a: any, b: any) => {
-          // Célba ért hajók előre, a célidő (finished_at) sorrendjében; utánuk a futók haladás szerint.
-          const af = a.status === 'finished', bf = b.status === 'finished'
-          if (af && bf) return new Date(a.finished_at||0).getTime() - new Date(b.finished_at||0).getTime()
-          if (af) return -1
-          if (bf) return 1
-          return (b.cp_index||0)-(a.cp_index||0) || (b.speed_kmh||0)-(a.speed_kmh||0)
-        })
-        const playerIds = [...new Set(sorted.map((p: any) => p.player_id).filter(Boolean))]
+        const playerIds = [...new Set(positions.map((p: any) => p.player_id).filter(Boolean))]
         const nameMap: Record<string, string> = {}
         await Promise.all(playerIds.map(async (pid: any) => {
           try {
@@ -293,12 +289,39 @@ export default function KikotoPage() {
             nameMap[pid] = user.name || user.email || 'Versenyző'
           } catch { nameMap[pid] = 'Versenyző' }
         }))
-        setStandings(sorted.map((p: any, i: number) => ({
-          pos: i+1, playerId: p.player_id,
-          name: nameMap[p.player_id] || 'Versenyző',
-          speed: Math.round(kmhToKnots(p.speed_kmh||0)*10)/10,
-          cp: p.cp_index||0,
-        })))
+
+        // Rendezés osztályon belül: célba értek a célidő sorrendjében, utánuk a futók haladás szerint
+        const sortFn = (a: any, b: any) => {
+          const af = a.status === 'finished', bf = b.status === 'finished'
+          if (af && bf) return new Date(a.finished_at||0).getTime() - new Date(b.finished_at||0).getTime()
+          if (af) return -1
+          if (bf) return 1
+          return (b.cp_index||0)-(a.cp_index||0) || (b.speed_kmh||0)-(a.speed_kmh||0)
+        }
+
+        // Csoportosítás hajóosztály szerint
+        const byClass: Record<string, any[]> = {}
+        for (const p of positions) { const c = p.boat_class || '—'; (byClass[c] ||= []).push(p) }
+        const classIds = Object.keys(byClass).sort((a, b) =>
+          (CLASS_LABELS[a]||a).localeCompare(CLASS_LABELS[b]||b)
+        )
+
+        const flat: any[] = []
+        for (const c of classIds) {
+          const sorted = byClass[c].sort(sortFn)
+          sorted.forEach((p: any, i: number) => {
+            flat.push({
+              pos: i+1, playerId: p.player_id,
+              name: nameMap[p.player_id] || 'Versenyző',
+              speed: Math.round(kmhToKnots(p.speed_kmh||0)*10)/10,
+              cp: p.cp_index||0,
+              classLabel: CLASS_LABELS[c] || 'Osztály',
+              firstInClass: i === 0,
+            })
+          })
+        }
+        setStandings(flat)
+        setClassCount(classIds.length)
       } catch (e) {}
     }
     loadRaceData()
@@ -596,15 +619,22 @@ export default function KikotoPage() {
                           const medal = s.pos <= 3
                           const medalColor = s.pos === 1 ? 'text-[var(--gold)]' : s.pos === 2 ? 'text-muted-foreground' : 'text-primary'
                           return (
-                            <div key={s.playerId} className="flex items-center gap-3 rounded-md px-2 py-2 odd:bg-muted/40">
-                              <span className={`flex w-6 justify-center font-heading text-base font-black ${medal ? medalColor : 'text-muted-foreground'}`}>
-                                {medal ? <Medal className="size-4" /> : s.pos}
-                              </span>
-                              <Ship className="size-3.5 shrink-0 text-secondary" strokeWidth={1.75} />
-                              <span className="flex-1 truncate font-heading text-sm font-semibold text-foreground">{s.name || 'Versenyző'}</span>
-                              <span className="text-xs text-muted-foreground">CP {s.cp}</span>
-                              <span className="font-heading text-sm font-semibold text-secondary">{s.speed} kn</span>
-                            </div>
+                            <Fragment key={s.playerId}>
+                              {classCount > 1 && s.firstInClass && (
+                                <div className="mt-3 px-2 pb-1 label-caps text-[10px] font-bold tracking-wider text-secondary first:mt-0">
+                                  {s.classLabel}
+                                </div>
+                              )}
+                              <div className="flex items-center gap-3 rounded-md px-2 py-2 odd:bg-muted/40">
+                                <span className={`flex w-6 justify-center font-heading text-base font-black ${medal ? medalColor : 'text-muted-foreground'}`}>
+                                  {medal ? <Medal className="size-4" /> : s.pos}
+                                </span>
+                                <Ship className="size-3.5 shrink-0 text-secondary" strokeWidth={1.75} />
+                                <span className="flex-1 truncate font-heading text-sm font-semibold text-foreground">{s.name || 'Versenyző'}</span>
+                                <span className="text-xs text-muted-foreground">CP {s.cp}</span>
+                                <span className="font-heading text-sm font-semibold text-secondary">{s.speed} kn</span>
+                              </div>
+                            </Fragment>
                           )
                         })}
                       </div>
