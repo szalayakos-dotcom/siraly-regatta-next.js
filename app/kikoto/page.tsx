@@ -132,6 +132,7 @@ export default function KikotoPage() {
   const [selectedRace, setSelectedRace] = useState<Race | null>(null)
   const [myRaces, setMyRaces] = useState<string[]>([])
   const [standings, setStandings] = useState<any[]>([])
+  const [absoluteStandings, setAbsoluteStandings] = useState<any[]>([])
   const [classCount, setClassCount] = useState(1)
   const CLASS_LABELS: Record<string, string> = {
     '9g4us1y1ye7afym': 'Ys.I', '40t0bopld7pwwo4': 'Ys.II', 'lgtakoks0p1jnvd': 'Ys.III',
@@ -299,6 +300,26 @@ export default function KikotoPage() {
           return (b.cp_index||0)-(a.cp_index||0) || (b.speed_kmh||0)-(a.speed_kmh||0)
         }
 
+        // Időhátrány a lista vezetőjéhez képest — csak célba ért hajóknál pontos
+        const fmtGap = (ms: number) => { const s = Math.round(ms/1000); if (s<60) return `+${s}mp`; const m = Math.floor(s/60), r = s%60; return `+${m}:${String(r).padStart(2,'0')}` }
+        const mkGap = (p: any, leader: any) => {
+          if (!leader || p === leader) return '—'
+          if (p.status === 'finished' && leader.status === 'finished')
+            return fmtGap(new Date(p.finished_at||0).getTime() - new Date(leader.finished_at||0).getTime())
+          return '—'
+        }
+        const toItem = (p: any, i: number, leader: any) => ({
+          pos: i+1, playerId: p.player_id,
+          name: nameMap[p.player_id] || 'Versenyző',
+          speed: Math.round(kmhToKnots(p.speed_kmh||0)*10)/10,
+          cp: p.cp_index||0,
+          gap: mkGap(p, leader),
+        })
+
+        // Összesített (abszolút) befutó — osztálytól függetlenül
+        const absSorted = [...positions].sort(sortFn)
+        setAbsoluteStandings(absSorted.map((p, i) => toItem(p, i, absSorted[0])))
+
         // Csoportosítás hajóosztály szerint
         const byClass: Record<string, any[]> = {}
         for (const p of positions) { const c = p.boat_class || '—'; (byClass[c] ||= []).push(p) }
@@ -311,10 +332,7 @@ export default function KikotoPage() {
           const sorted = byClass[c].sort(sortFn)
           sorted.forEach((p: any, i: number) => {
             flat.push({
-              pos: i+1, playerId: p.player_id,
-              name: nameMap[p.player_id] || 'Versenyző',
-              speed: Math.round(kmhToKnots(p.speed_kmh||0)*10)/10,
-              cp: p.cp_index||0,
+              ...toItem(p, i, sorted[0]),
               classLabel: CLASS_LABELS[c] || 'Osztály',
               firstInClass: i === 0,
             })
@@ -614,29 +632,54 @@ export default function KikotoPage() {
                         {isActive ? 'Adatok betöltése...' : 'A verseny indulása után jelenik meg az állás.'}
                       </p>
                     ) : (
-                      <div className="space-y-1">
-                        {standings.map(s => {
-                          const medal = s.pos <= 3
-                          const medalColor = s.pos === 1 ? 'text-[var(--gold)]' : s.pos === 2 ? 'text-muted-foreground' : 'text-primary'
-                          return (
-                            <Fragment key={s.playerId}>
-                              {classCount > 1 && s.firstInClass && (
-                                <div className="mt-3 px-2 pb-1 label-caps text-[10px] font-bold tracking-wider text-secondary first:mt-0">
-                                  {s.classLabel}
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-0 sm:divide-x sm:divide-border">
+                        {/* BAL — osztályonként */}
+                        <div className="sm:pr-3">
+                          <div className="mb-1.5 label-caps text-[9px] font-bold tracking-wider text-foreground">Osztályonként</div>
+                          <div className="space-y-1">
+                            {standings.map(s => {
+                              const medal = s.pos <= 3
+                              const medalColor = s.pos === 1 ? 'text-[var(--gold)]' : s.pos === 2 ? 'text-muted-foreground' : 'text-primary'
+                              return (
+                                <Fragment key={s.playerId}>
+                                  {classCount > 1 && s.firstInClass && (
+                                    <div className="mt-2 px-2 pb-0.5 label-caps text-[10px] font-bold tracking-wider text-foreground first:mt-0">
+                                      {s.classLabel}
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-2 rounded-md px-2 py-1.5 odd:bg-muted/40">
+                                    <span className={`flex w-5 shrink-0 justify-center font-heading text-sm font-black ${medal ? medalColor : 'text-muted-foreground'}`}>
+                                      {medal ? <Medal className="size-3.5" /> : s.pos}
+                                    </span>
+                                    <span className="flex-1 truncate font-heading text-xs font-semibold text-foreground">{s.name || 'Versenyző'}</span>
+                                    <span className="text-[10px] text-muted-foreground">CP {s.cp}</span>
+                                    <span className="w-12 text-right font-mono text-[10px] tabular-nums text-muted-foreground">{s.gap}</span>
+                                  </div>
+                                </Fragment>
+                              )
+                            })}
+                          </div>
+                        </div>
+                        {/* JOBB — összesített befutó */}
+                        <div className="sm:pl-3">
+                          <div className="mb-1.5 label-caps text-[9px] font-bold tracking-wider text-foreground">Összesített befutó</div>
+                          <div className="space-y-1">
+                            {absoluteStandings.map(s => {
+                              const medal = s.pos <= 3
+                              const medalColor = s.pos === 1 ? 'text-[var(--gold)]' : s.pos === 2 ? 'text-muted-foreground' : 'text-primary'
+                              return (
+                                <div key={s.playerId} className="flex items-center gap-2 rounded-md px-2 py-1.5 odd:bg-muted/40">
+                                  <span className={`flex w-5 shrink-0 justify-center font-heading text-sm font-black ${medal ? medalColor : 'text-muted-foreground'}`}>
+                                    {medal ? <Medal className="size-3.5" /> : s.pos}
+                                  </span>
+                                  <span className="flex-1 truncate font-heading text-xs font-semibold text-foreground">{s.name || 'Versenyző'}</span>
+                                  <span className="text-[10px] text-muted-foreground">CP {s.cp}</span>
+                                  <span className="w-12 text-right font-mono text-[10px] tabular-nums text-muted-foreground">{s.gap}</span>
                                 </div>
-                              )}
-                              <div className="flex items-center gap-3 rounded-md px-2 py-2 odd:bg-muted/40">
-                                <span className={`flex w-6 justify-center font-heading text-base font-black ${medal ? medalColor : 'text-muted-foreground'}`}>
-                                  {medal ? <Medal className="size-4" /> : s.pos}
-                                </span>
-                                <Ship className="size-3.5 shrink-0 text-secondary" strokeWidth={1.75} />
-                                <span className="flex-1 truncate font-heading text-sm font-semibold text-foreground">{s.name || 'Versenyző'}</span>
-                                <span className="text-xs text-muted-foreground">CP {s.cp}</span>
-                                <span className="font-heading text-sm font-semibold text-secondary">{s.speed} kn</span>
-                              </div>
-                            </Fragment>
-                          )
-                        })}
+                              )
+                            })}
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
