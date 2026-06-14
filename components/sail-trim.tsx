@@ -100,7 +100,7 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
 
 
   useEffect(() => {
-    if (!mounted) return
+    if (!mounted || !raceId) return
     const pb = getPocketBase()
 
     function loadConditions() {
@@ -161,7 +161,7 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
     }
 
     return () => clearInterval(interval)
-  }, [mounted])
+  }, [mounted, raceId])
 
   // Optimális Trim — vitorlaválasztás (max 75%) + trim (extra 25%)
   useEffect(() => {

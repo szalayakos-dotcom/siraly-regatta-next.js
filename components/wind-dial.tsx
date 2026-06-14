@@ -39,7 +39,7 @@ export function WindDial() {
   useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
-    if (!mounted) return
+    if (!mounted || !raceId) return
     const pb = getPocketBase()
 
     async function load() {
@@ -74,7 +74,7 @@ export function WindDial() {
     load()
     const interval = setInterval(load, 10000)
     return () => clearInterval(interval)
-  }, [mounted])
+  }, [mounted, raceId])
 
   if (!mounted) return null
 
