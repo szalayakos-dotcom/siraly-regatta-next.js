@@ -29,9 +29,15 @@ export function FleetStandings() {
         const positions = await pb.collection('race_positions').getFullList({
           filter: `race_id="${raceId}"`,
         })
-        const sorted = positions.sort((a, b) =>
-          (b.cp_index || 0) - (a.cp_index || 0) || (b.speed_kmh || 0) - (a.speed_kmh || 0)
-        )
+        const sorted = positions.sort((a, b) => {
+          // Célba ért hajók előre, a célba érés (finished_at) sorrendjében = valódi helyezés.
+          // Utánuk a még futók a haladás (cp_index), majd sebesség szerint.
+          const af = a.status === 'finished', bf = b.status === 'finished'
+          if (af && bf) return new Date(a.finished_at || 0).getTime() - new Date(b.finished_at || 0).getTime()
+          if (af) return -1
+          if (bf) return 1
+          return (b.cp_index || 0) - (a.cp_index || 0) || (b.speed_kmh || 0) - (a.speed_kmh || 0)
+        })
         const myId = pb.authStore.record?.id
 
         // Felhasználónevek betöltése
@@ -66,7 +72,7 @@ export function FleetStandings() {
     const interval = setInterval(load, 10000)
     const unsub = pb.collection('race_positions').subscribe('*', () => load())
     return () => { clearInterval(interval); unsub.then(fn => fn()) }
-  }, [])
+  }, [raceId])
 
   return (
     <Panel title="Versenyállás" code="FLT" bodyClassName="p-0">
