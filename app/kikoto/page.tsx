@@ -277,9 +277,14 @@ export default function KikotoPage() {
         const positions = await pb.collection('race_positions').getFullList({
           filter: `race_id="${selectedRace.id}"`,
         })
-        const sorted = positions.sort((a: any, b: any) =>
-          (b.current_cp_index||0)-(a.current_cp_index||0) || (b.current_speed_kmh||0)-(a.current_speed_kmh||0)
-        )
+        const sorted = positions.sort((a: any, b: any) => {
+          // Célba ért hajók előre, a célidő (finished_at) sorrendjében; utánuk a futók haladás szerint.
+          const af = a.status === 'finished', bf = b.status === 'finished'
+          if (af && bf) return new Date(a.finished_at||0).getTime() - new Date(b.finished_at||0).getTime()
+          if (af) return -1
+          if (bf) return 1
+          return (b.cp_index||0)-(a.cp_index||0) || (b.speed_kmh||0)-(a.speed_kmh||0)
+        })
         const playerIds = [...new Set(sorted.map((p: any) => p.player_id).filter(Boolean))]
         const nameMap: Record<string, string> = {}
         await Promise.all(playerIds.map(async (pid: any) => {
@@ -291,8 +296,8 @@ export default function KikotoPage() {
         setStandings(sorted.map((p: any, i: number) => ({
           pos: i+1, playerId: p.player_id,
           name: nameMap[p.player_id] || 'Versenyző',
-          speed: Math.round(kmhToKnots(p.current_speed_kmh||0)*10)/10,
-          cp: p.current_cp_index||0,
+          speed: Math.round(kmhToKnots(p.speed_kmh||0)*10)/10,
+          cp: p.cp_index||0,
         })))
       } catch (e) {}
     }
