@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Panel } from './panel'
 import { getPocketBase } from '@/lib/pocketbase'
 import { useRace } from '@/components/race-context'
@@ -92,6 +92,8 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
   const [heading, setHeading] = useState(0)
   const [credits, setCredits] = useState(0)
   const [trimEfficiency, setTrimEfficiency] = useState(0)
+  const [restored, setRestored] = useState(false)   // visszatöltődött-e már a mentett beállítás
+  const restoredRef = useRef(false)
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -117,7 +119,33 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
           filter: `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`,
         }).then(pos => {
           if (pos.length && typeof pos[0].heading_deg === 'number') setHeading(pos[0].heading_deg)
-        }).catch(() => {})
+
+          // Mentett vitorlák/trim visszatöltése — CSAK egyszer (reload után), hogy ne nullázza
+          // defaultra a beállításodat, és ne írja vissza a defaultot a DB-be.
+          if (pos.length && !restoredRef.current) {
+            const p: any = pos[0]
+            setSails({
+              gross: !!p.sail_gross,
+              fock: !!p.sail_fock,
+              genua: !!p.sail_genua,
+              spinn: !!p.sail_spinn_bool,
+              genakker: !!p.sail_genakker,
+            })
+            setTrim(prev => ({
+              ...prev,
+              mainsheet: p.trim_mainsheet ?? prev.mainsheet,
+              jibtrim: p.trim_jibtrim ?? prev.jibtrim,
+              boomvang: p.trim_boomvang ?? prev.boomvang,
+              backstay: p.trim_backstay ?? prev.backstay,
+              cunningham: p.trim_cunningham ?? prev.cunningham,
+              spinnshot: p.trim_spinnshot ?? prev.spinnshot,
+              genakkershot: p.trim_genakkershot ?? prev.genakkershot,
+            }))
+          }
+          if (!restoredRef.current) { restoredRef.current = true; setRestored(true) }
+        }).catch(() => { if (!restoredRef.current) { restoredRef.current = true; setRestored(true) } })
+      } else if (!restoredRef.current) {
+        restoredRef.current = true; setRestored(true)
       }
     }
 
@@ -181,8 +209,8 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
       tuldoles: false,
       trimEfficiency: eff,
     })
-    onTrimChange?.({ sails, trim, windDir, windSpeedKn })
-  }, [trim, sails, windDir, windSpeedKn, heading])
+    if (restored) onTrimChange?.({ sails, trim, windDir, windSpeedKn })
+  }, [mounted, trim, sails, windDir, windSpeedKn, heading, restored])
 
   function toggle(sail: keyof SailState) {
     setSails(prev => {
