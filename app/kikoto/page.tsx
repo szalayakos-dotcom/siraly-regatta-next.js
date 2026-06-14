@@ -827,10 +827,10 @@ function RaceHero({
             </div>
           ) : null}
 
-          <button onClick={joined && canEnterDeck ? onJoin : (!joined ? onJoin : undefined)}
-            disabled={joined && !canEnterDeck}
-            className={`mt-3 flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 font-heading text-sm font-semibold transition-colors ${joined && canEnterDeck ? 'bg-secondary text-secondary-foreground hover:bg-secondary/80' : joined && !canEnterDeck ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}>
-            {joined ? <><Ship className="size-4"/>Fedélzetre</> : <><Flag className="size-4"/>Nevezés a futamra</>}
+          <button onClick={joined && canEnterDeck ? onJoin : (!joined && race.status === 'published' ? onJoin : undefined)}
+            disabled={(joined && !canEnterDeck) || (!joined && race.status !== 'published')}
+            className={`mt-3 flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 font-heading text-sm font-semibold transition-colors ${joined && canEnterDeck ? 'bg-secondary text-secondary-foreground hover:bg-secondary/80' : (joined && !canEnterDeck) || (!joined && race.status !== 'published') ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}>
+            {joined ? <><Ship className="size-4"/>Fedélzetre</> : race.status === 'published' ? <><Flag className="size-4"/>Nevezés a futamra</> : <><Flag className="size-4"/>Nevezés lezárva</>}
           </button>
         </div>
       </div>

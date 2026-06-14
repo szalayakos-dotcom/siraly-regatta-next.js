@@ -266,6 +266,23 @@ export default function EntryPage() {
     )
   }
 
+  if (race && race.status !== 'published') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--background)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+        <div style={{ textAlign: 'center', maxWidth: '380px' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔒</div>
+          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', fontWeight: 900, color: 'var(--foreground)', marginBottom: '8px' }}>NEVEZÉS LEZÁRVA</h2>
+          <p style={{ fontFamily: 'var(--font-sans)', fontSize: '13px', color: 'var(--muted-foreground)', marginBottom: '20px', lineHeight: 1.6 }}>
+            Erre a futamra már nem lehet nevezni — a verseny elindult vagy véget ért. A következő kiírásra nevezz a kikötőben.
+          </p>
+          <button onClick={() => router.push('/kikoto')} style={{ background: 'var(--foreground)', color: 'var(--background)', border: 'none', borderRadius: '6px', padding: '10px 24px', fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '13px', letterSpacing: '1px', cursor: 'pointer' }}>
+            VISSZA A KIKÖTŐBE
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--background)' }}>
       {/* Fejléc */}
