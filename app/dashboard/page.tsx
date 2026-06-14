@@ -490,7 +490,7 @@ export default function Page() {
           {/* SOR 1: Térkép + Fedélzeti kamera */}
           <div className="flex shrink-0 flex-col gap-1.5">
             <SectionLabel code="NAV">Navigáció &amp; Fedélzeti kamera</SectionLabel>
-            <div className="grid h-[380px] gap-3 lg:grid-cols-[1fr_507px]">
+            <div className="grid gap-3 lg:h-[380px] lg:grid-cols-[1fr_507px]">
               <div className="h-[380px] overflow-hidden">
                 <RaceChart />
               </div>
@@ -507,23 +507,23 @@ export default function Page() {
           {/* SOR 2: Szélmérő + Dőlés + Vitorla-trim */}
           <div className="flex shrink-0 flex-col gap-1.5">
             <SectionLabel code="TRIM">Szélmérő · Dőlésmérő · Vitorlaállítás</SectionLabel>
-            <div className="grid h-[460px] gap-3 lg:grid-cols-[210px_210px_1fr]">
-              <div className="h-[460px] overflow-hidden">
+            <div className="grid gap-3 lg:h-[460px] lg:grid-cols-[210px_210px_1fr]">
+              <div className="h-[340px] overflow-hidden lg:h-[460px]">
                 <WindDial />
               </div>
-              <Panel code="HEEL" title="Dőlésmérő" bodyClassName="flex items-center justify-center p-3">
+              <Panel code="HEEL" title="Dőlésmérő" bodyClassName="flex items-center justify-center p-3" className="min-h-[240px] lg:min-h-0">
                 <HeelIndicator heel={heel} />
               </Panel>
-              <div className="h-[460px] overflow-hidden">
+              <div className="h-[520px] overflow-hidden lg:h-[460px]">
                 <SailTrim onWarningsChange={setWarnings} onTrimChange={handleTrimChange} />
               </div>
             </div>
           </div>
 
           {/* SOR 3: Versenyállás + Időjárás + Taktika */}
-          <div className="flex flex-1 flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 lg:flex-1">
             <SectionLabel code="INFO">Versenyállás · Előrejelzés · Taktika</SectionLabel>
-            <div className="grid min-h-[160px] flex-1 gap-3 lg:grid-cols-3">
+            <div className="grid min-h-[160px] gap-3 lg:flex-1 lg:grid-cols-3">
               <div className="overflow-hidden">
                 <FleetStandings />
               </div>
