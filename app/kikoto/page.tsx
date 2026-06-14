@@ -292,17 +292,19 @@ export default function KikotoPage() {
         }))
 
         // Rendezés osztályon belül: célba értek a célidő sorrendjében, utánuk a futók haladás szerint
+        const rankOf = (p: any) => p.status === 'finished' ? 0 : p.status === 'dnf' ? 2 : 1
         const sortFn = (a: any, b: any) => {
-          const af = a.status === 'finished', bf = b.status === 'finished'
-          if (af && bf) return new Date(a.finished_at||0).getTime() - new Date(b.finished_at||0).getTime()
-          if (af) return -1
-          if (bf) return 1
-          return (b.cp_index||0)-(a.cp_index||0) || (b.speed_kmh||0)-(a.speed_kmh||0)
+          const ra = rankOf(a), rb = rankOf(b)
+          if (ra !== rb) return ra - rb
+          if (ra === 0) return new Date(a.finished_at||0).getTime() - new Date(b.finished_at||0).getTime()
+          if (ra === 1) return (b.cp_index||0)-(a.cp_index||0) || (b.speed_kmh||0)-(a.speed_kmh||0)
+          return 0
         }
 
         // Időhátrány a lista vezetőjéhez képest — csak célba ért hajóknál pontos
         const fmtGap = (ms: number) => { const s = Math.round(ms/1000); if (s<60) return `+${s}mp`; const m = Math.floor(s/60), r = s%60; return `+${m}:${String(r).padStart(2,'0')}` }
         const mkGap = (p: any, leader: any) => {
+          if (p.status === 'dnf') return 'DNF'
           if (!leader || p === leader) return '—'
           if (p.status === 'finished' && leader.status === 'finished')
             return fmtGap(new Date(p.finished_at||0).getTime() - new Date(leader.finished_at||0).getTime())
@@ -314,6 +316,7 @@ export default function KikotoPage() {
           speed: Math.round(kmhToKnots(p.speed_kmh||0)*10)/10,
           cp: p.cp_index||0,
           gap: mkGap(p, leader),
+          dnf: p.status === 'dnf',
         })
 
         // Összesített (abszolút) befutó — osztálytól függetlenül
@@ -368,7 +371,7 @@ export default function KikotoPage() {
               html: `<div style="background:${color};color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4)">${i+1}</div>`,
               className:'', iconAnchor:[13,13],
             })
-            L.marker([pt.lat,pt.lng],{icon}).addTo(map).bindTooltip(pt.name,{permanent:true,direction:'top',offset:[0,-16]})
+            L.marker([pt.lat,pt.lng],{icon}).addTo(map).bindTooltip(pt.name,{permanent:false,direction:'top',offset:[0,-16]})
           })
           if (mainPts.length>1) {
             L.polyline(mainPts.map((p: any)=>[p.lat,p.lng]),{color:'#c42b1c',weight:2,opacity:0.5,dashArray:'6 4'}).addTo(map)
@@ -638,7 +641,7 @@ export default function KikotoPage() {
                           <div className="mb-1.5 label-caps text-[9px] font-bold tracking-wider text-foreground">Osztályonként</div>
                           <div className="space-y-1">
                             {standings.map(s => {
-                              const medal = s.pos <= 3
+                              const medal = !s.dnf && s.pos <= 3
                               const medalColor = s.pos === 1 ? 'text-[var(--gold)]' : s.pos === 2 ? 'text-muted-foreground' : 'text-primary'
                               return (
                                 <Fragment key={s.playerId}>
@@ -665,7 +668,7 @@ export default function KikotoPage() {
                           <div className="mb-1.5 label-caps text-[9px] font-bold tracking-wider text-foreground">Összesített befutó</div>
                           <div className="space-y-1">
                             {absoluteStandings.map(s => {
-                              const medal = s.pos <= 3
+                              const medal = !s.dnf && s.pos <= 3
                               const medalColor = s.pos === 1 ? 'text-[var(--gold)]' : s.pos === 2 ? 'text-muted-foreground' : 'text-primary'
                               return (
                                 <div key={s.playerId} className="flex items-center gap-2 rounded-md px-2 py-1.5 odd:bg-muted/40">

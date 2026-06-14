@@ -16,6 +16,7 @@ import { useRace } from '@/components/race-context'
 import { HeelIndicator } from '@/components/heel-indicator'
 import { CheckpointOverlay } from '@/components/checkpoint-overlay'
 import { FinishOverlay } from '@/components/finish-overlay'
+import { FirstFinishOverlay } from '@/components/first-finish-overlay'
 import { Panel } from '@/components/panel'
 import { StartConsole } from '@/components/start-console'
 import { cn } from '@/lib/utils'
@@ -247,6 +248,25 @@ export default function Page() {
     return () => clearInterval(interval)
   }, [scheduledStart, hasStarted])
 
+  async function quitRace() {
+    if (!confirm('Biztosan kiszállsz a versenyből? Ez nem visszavonható — DNF-et kapsz, és nem szerzel helyezést.')) return
+    try {
+      const pb = getPocketBase()
+      if (raceId && pb.authStore.isValid) {
+        const pos = await pb.collection('race_positions')
+          .getFirstListItem(`race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`)
+          .catch(() => null)
+        if (pos) {
+          await pb.collection('race_positions').update(pos.id, {
+            status: 'dnf',
+            finished_at: new Date().toISOString(),
+          })
+        }
+      }
+    } catch {}
+    router.push('/kikoto')
+  }
+
   async function handleStart() {
     const pb = getPocketBase()
     if (!pb.authStore.isValid) return
@@ -406,6 +426,7 @@ export default function Page() {
             onClose={() => setFinishOverlay(null)}
           />
         )}
+        {!finishOverlay && <FirstFinishOverlay />}
         {!finishOverlay && cpOverlay && (
           <CheckpointOverlay
             cpIndex={cpOverlay.index}
@@ -429,6 +450,12 @@ export default function Page() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={quitRace}
+              className="label-caps rounded-md border border-[oklch(0.5_0.12_28)] px-2 py-1 text-[9px] text-[oklch(0.78_0.14_28)] transition-colors hover:bg-[oklch(0.5_0.12_28/0.18)]"
+            >
+              Kiszállok
+            </button>
             <span
               className="inline-block size-2 rounded-full"
               style={{

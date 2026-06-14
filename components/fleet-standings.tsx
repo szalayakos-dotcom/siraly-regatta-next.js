@@ -22,6 +22,7 @@ interface Row {
   you: boolean
   finished: boolean
   finishedAtMs: number | null
+  dnf: boolean
 }
 interface ClassGroup { classId: string; label: string; rows: Row[] }
 
@@ -33,18 +34,20 @@ function fmtGap(ms: number): string {
   return `+${m}:${String(r).padStart(2, '0')}`
 }
 function gapLabel(row: Row, leader: Row | undefined): string {
+  if (row.dnf) return 'DNF'
   if (!leader || row === leader) return '—'
   if (row.finished && leader.finished && row.finishedAtMs != null && leader.finishedAtMs != null)
     return fmtGap(row.finishedAtMs - leader.finishedAtMs)
   return '—'
 }
 
+const rankOf = (p: any) => p.status === 'finished' ? 0 : p.status === 'dnf' ? 2 : 1
 const sortFn = (a: any, b: any) => {
-  const af = a.status === 'finished', bf = b.status === 'finished'
-  if (af && bf) return new Date(a.finished_at || 0).getTime() - new Date(b.finished_at || 0).getTime()
-  if (af) return -1
-  if (bf) return 1
-  return (b.cp_index || 0) - (a.cp_index || 0) || (b.speed_kmh || 0) - (a.speed_kmh || 0)
+  const ra = rankOf(a), rb = rankOf(b)
+  if (ra !== rb) return ra - rb
+  if (ra === 0) return new Date(a.finished_at || 0).getTime() - new Date(b.finished_at || 0).getTime()
+  if (ra === 1) return (b.cp_index || 0) - (a.cp_index || 0) || (b.speed_kmh || 0) - (a.speed_kmh || 0)
+  return 0
 }
 function toRow(p: any, i: number, myId: string | undefined, nameMap: Record<string, string>): Row {
   return {
@@ -55,22 +58,26 @@ function toRow(p: any, i: number, myId: string | undefined, nameMap: Record<stri
     you: p.player_id === myId,
     finished: p.status === 'finished',
     finishedAtMs: p.finished_at ? new Date(p.finished_at).getTime() : null,
+    dnf: p.status === 'dnf',
   }
 }
 
 function StandRow({ r, leader }: { r: Row; leader: Row | undefined }) {
   return (
-    <li className={cn('flex items-center gap-2 px-2.5 py-2', r.you && 'bg-accent/10')}>
+    <li className={cn('flex items-center gap-2 px-2.5 py-2', r.you && 'bg-accent/10', r.dnf && 'opacity-60')}>
       <span className={cn(
         'flex size-5 shrink-0 items-center justify-center rounded-full font-heading text-[10px] font-bold',
-        r.pos === 1 ? 'bg-accent text-accent-foreground' : 'border border-border text-foreground'
-      )}>{r.pos}</span>
+        r.dnf ? 'border border-border text-muted-foreground'
+          : r.pos === 1 ? 'bg-accent text-accent-foreground' : 'border border-border text-foreground'
+      )}>{r.dnf ? '—' : r.pos}</span>
       <div className="min-w-0 flex-1">
         <p className="truncate font-heading text-xs font-semibold tracking-wide text-foreground">
           {r.name}
           {r.you && <span className="ml-1.5 rounded-sm bg-secondary px-1 py-0.5 text-[7px] uppercase tracking-wider text-secondary-foreground">Te</span>}
         </p>
-        <p className="label-caps text-[7px] text-muted-foreground">CP {r.cp} · {r.speed.toFixed(1)} kn</p>
+        <p className={cn('label-caps text-[7px]', r.dnf ? 'text-destructive' : 'text-muted-foreground')}>
+          {r.dnf ? 'Nem ért célba (DNF)' : `CP ${r.cp} · ${r.speed.toFixed(1)} kn`}
+        </p>
       </div>
       <span className="font-mono text-[10px] tabular-nums text-muted-foreground">{gapLabel(r, leader)}</span>
     </li>
