@@ -22,14 +22,24 @@ export function FinishOverlay({ finishedAt, onClose }: FinishOverlayProps) {
   useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
-    if (!mounted) return
+    if (!mounted || !raceId) return
     const pb = getPocketBase()
 
     async function load() {
       try {
         const race = await pb.collection('races').getOne(raceId)
         let raceStart = race.actual_start ? new Date(race.actual_start).getTime() : 0
-        // Fallback: player_races joined_at
+
+        // Fallback 1: a saját hajó started_at-ja (amikor RAJT-ot nyomtál)
+        if (!raceStart && pb.authStore.isValid) {
+          try {
+            const myPos = await pb.collection('race_positions').getFirstListItem(
+              `race_id="${raceId}" && player_id="${pb.authStore.record?.id}"`
+            )
+            if (myPos.started_at) raceStart = new Date(myPos.started_at).getTime()
+          } catch {}
+        }
+        // Fallback 2: player_races joined_at
         if (!raceStart && pb.authStore.isValid) {
           try {
             const pr = await pb.collection('player_races').getFirstListItem(
@@ -39,7 +49,7 @@ export function FinishOverlay({ finishedAt, onClose }: FinishOverlayProps) {
           } catch {}
         }
         const finishTime = new Date(finishedAt).getTime()
-        const elapsed = raceStart > 0 ? Math.floor((finishTime - raceStart) / 1000) : 0
+        const elapsed = raceStart > 0 ? Math.max(0, Math.floor((finishTime - raceStart) / 1000)) : 0
         const h = Math.floor(elapsed / 3600)
         const m = Math.floor((elapsed % 3600) / 60)
         const s = elapsed % 60
@@ -65,7 +75,7 @@ export function FinishOverlay({ finishedAt, onClose }: FinishOverlayProps) {
     // Animáció késleltetése
     const t = setTimeout(() => setShowContent(true), 300)
     return () => clearTimeout(t)
-  }, [mounted, finishedAt])
+  }, [mounted, finishedAt, raceId])
 
   if (!mounted) return null
 
@@ -95,7 +105,7 @@ export function FinishOverlay({ finishedAt, onClose }: FinishOverlayProps) {
           <img
             src="/finish-befuto.jpg"
             alt="Vitorlás befut a célba a sárga FINISH bója mellett, a kikötő ünneplő tömegével, festett retró plakát stílusban"
-            className="h-44 w-full object-cover sm:h-52"
+            className="aspect-[1344/768] w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
         </div>
