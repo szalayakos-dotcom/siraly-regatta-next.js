@@ -288,12 +288,10 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
       bodyClassName="p-0 overflow-hidden"
       style={{ height: '100%' }}
     >
-      <div style={{ display: 'flex', height: '100%' }}>
+      <div className="flex flex-col lg:h-full lg:flex-row">
 
         {/* BAL: Hajó SVG + csere gombok */}
-        <div style={{
-          width: '150px', flexShrink: 0,
-          borderRight: '1px solid var(--border)',
+        <div className="w-full shrink-0 border-b border-border lg:w-[150px] lg:border-b-0 lg:border-r" style={{
           display: 'flex', flexDirection: 'column',
           padding: '10px 8px', gap: '8px',
         }}>
@@ -355,10 +353,8 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
         </div>
 
         {/* KÖZÉP: Gross + Reef */}
-        <div style={{
-          width: '180px', flexShrink: 0,
-          borderRight: '1px solid var(--border)',
-          padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto',
+        <div className="w-full shrink-0 border-b border-border lg:w-[180px] lg:border-b-0 lg:border-r lg:overflow-y-auto" style={{
+          padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: '8px',
         }}>
           {/* Főv vitorla */}
           <div>
@@ -429,7 +425,7 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
               {trimEfficiency}%
             </span>
           </div>
-          <div style={{ flex: 1, display: 'flex', gap: '6px' }}>
+          <div style={{ flex: 1, display: 'flex', gap: '6px', overflowX: 'auto' }}>
             {([
               ['Gross-shot',  'mainsheet',    sails.gross],
               ['Fock/Genu',   'jibtrim',      !hasFockroller && (sails.fock || sails.genua)],

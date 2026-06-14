@@ -21,7 +21,7 @@ export function HeelIndicator({ heel = 0 }: HeelIndicatorProps) {
   const ticks = [-40, -30, -20, -10, 0, 10, 20, 30, 40]
 
   return (
-    <div className="gauge-housing aspect-square w-full" style={{ maxWidth: 'min(100%, 320px)' }}>
+    <div className="gauge-housing aspect-square w-full shrink-0" style={{ maxWidth: 'min(100%, 320px)' }}>
       <div className="gauge-face">
         <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full">
           {/* Biztonságos zóna ív (zöld) */}

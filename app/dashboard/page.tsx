@@ -403,7 +403,7 @@ export default function Page() {
   const startReady = startState === 'ready' && !hasStarted
 
   return (
-    <div className="flex min-h-screen flex-col bg-[oklch(0.93_0.02_250)]">
+    <div className="flex min-h-screen flex-col overflow-x-hidden bg-[oklch(0.93_0.02_250)]">
       <div className="relative flex min-w-0 flex-1 flex-col">
 
         {/* Szünet overlay */}
@@ -508,13 +508,13 @@ export default function Page() {
           <div className="flex shrink-0 flex-col gap-1.5">
             <SectionLabel code="TRIM">Szélmérő · Dőlésmérő · Vitorlaállítás</SectionLabel>
             <div className="grid gap-3 lg:h-[460px] lg:grid-cols-[210px_210px_1fr]">
-              <div className="h-[340px] overflow-hidden lg:h-[460px]">
+              <div className="overflow-hidden lg:h-[460px]">
                 <WindDial />
               </div>
               <Panel code="HEEL" title="Dőlésmérő" bodyClassName="flex items-center justify-center p-3" className="min-h-[240px] lg:min-h-0">
                 <HeelIndicator heel={heel} />
               </Panel>
-              <div className="h-[520px] overflow-hidden lg:h-[460px]">
+              <div className="overflow-hidden lg:h-[460px]">
                 <SailTrim onWarningsChange={setWarnings} onTrimChange={handleTrimChange} />
               </div>
             </div>

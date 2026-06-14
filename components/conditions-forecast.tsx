@@ -33,7 +33,7 @@ export function ConditionsForecast() {
   useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
-    if (!mounted) return
+    if (!mounted || !raceId) return
     const pb = getPocketBase()
 
     async function load() {
@@ -67,7 +67,7 @@ export function ConditionsForecast() {
     load()
     const interval = setInterval(load, 30000)
     return () => clearInterval(interval)
-  }, [mounted])
+  }, [mounted, raceId])
 
   if (!mounted) return null
 

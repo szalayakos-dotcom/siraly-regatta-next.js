@@ -81,7 +81,7 @@ export function WindDial() {
   return (
     <Panel title="Szél & Irány" code="WX-1" bodyClassName="flex flex-col items-center gap-3">
       {/* Süllyesztett sárgaréz műszerház üvegdómmal */}
-      <div className="gauge-housing aspect-square w-full" style={{ maxWidth: "min(100%, 320px)" }}>
+      <div className="gauge-housing aspect-square w-full shrink-0" style={{ maxWidth: "min(100%, 320px)" }}>
         <div className="gauge-face">
           <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full">
             {/* No-go zone */}
