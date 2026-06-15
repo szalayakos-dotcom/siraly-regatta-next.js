@@ -76,6 +76,17 @@ export default function Page() {
 
   const [heel, setHeel] = useState(0)
 
+  // Asztali (egy keretes ház) vs mobil (fülezett MFD) felület
+  const [isDesktop, setIsDesktop] = useState<boolean | null>(null)
+  const [mobileTab, setMobileTab] = useState<'nav' | 'wind' | 'heel' | 'trim' | 'map' | 'standings'>('map')
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const upd = () => setIsDesktop(mq.matches)
+    upd()
+    mq.addEventListener('change', upd)
+    return () => mq.removeEventListener('change', upd)
+  }, [])
+
   const trimUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleTrimChange = useCallback((snapshot: TrimSnapshot) => {
@@ -402,11 +413,40 @@ export default function Page() {
 
   const startReady = startState === 'ready' && !hasStarted
 
+  // Sárgaréz sarokcsavar a házhoz
+  const screw = (pos: string) => (
+    <span
+      className={`absolute z-10 size-2.5 rounded-full ${pos}`}
+      style={{ background: 'radial-gradient(circle at 35% 35%, oklch(0.82 0.10 84), oklch(0.46 0.07 70))', boxShadow: 'inset 0 0 2px rgba(0,0,0,0.6)' }}
+      aria-hidden
+    />
+  )
+
+  const statusDot = (
+    <>
+      <span
+        className="inline-block size-2 rounded-full"
+        style={{
+          background: hasStarted ? 'oklch(0.7 0.18 145)' : startReady ? 'oklch(0.7 0.2 28)' : 'oklch(0.4 0.03 250)',
+          boxShadow: (hasStarted || startReady) ? '0 0 8px currentColor' : 'none',
+        }}
+        aria-hidden
+      />
+      <span className="label-caps text-[10px] text-[oklch(0.82_0.03_92)]">
+        {hasStarted ? 'Versenyben' : startReady ? 'Rajtra kész' : 'Készenlét'}
+      </span>
+    </>
+  )
+
+  const MTABS: [typeof mobileTab, string][] = [
+    ['nav', 'Nav'], ['wind', 'Szél'], ['heel', 'Dőlés'], ['trim', 'Trim'], ['map', 'Térkép'], ['standings', 'Állás'],
+  ]
+
   return (
     <div className="cockpit flex min-h-screen flex-col overflow-x-hidden" style={{ background: 'radial-gradient(150% 100% at 50% -12%, oklch(0.31 0.05 238), oklch(0.165 0.035 245) 68%)' }}>
       <div className="relative flex min-w-0 flex-1 flex-col">
 
-        {/* Szünet overlay */}
+        {/* ===== Megosztott overlay-k ===== */}
         {raceStatus === 'paused' && (
           <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-4 bg-[oklch(0.18_0.03_250/0.94)] px-6 backdrop-blur-sm">
             <div className="max-w-md rounded-sm border border-[oklch(0.93_0.02_92/0.15)] bg-[oklch(0.93_0.02_92/0.05)] px-10 py-10 text-center">
@@ -422,10 +462,7 @@ export default function Page() {
         )}
 
         {finishOverlay && (
-          <FinishOverlay
-            finishedAt={finishOverlay.finishedAt}
-            onClose={() => setFinishOverlay(null)}
-          />
+          <FinishOverlay finishedAt={finishOverlay.finishedAt} onClose={() => setFinishOverlay(null)} />
         )}
         {!finishOverlay && <FirstFinishOverlay />}
         {!finishOverlay && cpOverlay && (
@@ -438,18 +475,17 @@ export default function Page() {
           />
         )}
 
-        {/* Navigációs sáv — sárgaréz műszerfal fejléc */}
+        {/* ===== Megosztott fejléc ===== */}
         <header className="flex items-center justify-between gap-3 border-b border-[oklch(0.42_0.04_248)] bg-[linear-gradient(180deg,oklch(0.3_0.035_248),oklch(0.2_0.03_250))] px-4 py-2">
           <a href="/kikoto" className="label-caps flex items-center gap-1.5 text-[11px] text-[oklch(0.82_0.03_92)] transition-colors hover:text-[oklch(0.95_0.02_92)]">
             <ChevronLeft className="size-4" />
             Kikötő
           </a>
-
           <div className="flex items-center gap-2 font-heading text-sm font-bold tracking-[0.2em] text-[oklch(0.92_0.02_92)]">
             <Sailboat className="size-4 text-[var(--gold)]" />
-            FEDÉLZETI MŰSZERFAL
+            <span className="hidden sm:inline">FEDÉLZETI MŰSZERFAL</span>
+            <span className="sm:hidden">MŰSZERFAL</span>
           </div>
-
           <div className="flex items-center gap-2">
             <button
               onClick={quitRace}
@@ -457,85 +493,138 @@ export default function Page() {
             >
               Kiszállok
             </button>
-            <span
-              className="inline-block size-2 rounded-full"
-              style={{
-                background: hasStarted ? 'oklch(0.7 0.18 145)' : startReady ? 'oklch(0.7 0.2 28)' : 'oklch(0.4 0.03 250)',
-                boxShadow: (hasStarted || startReady) ? '0 0 8px currentColor' : 'none',
-              }}
-              aria-hidden
-            />
-            <span className="label-caps text-[10px] text-[oklch(0.82_0.03_92)]">
-              {hasStarted ? 'Versenyben' : startReady ? 'Rajtra kész' : 'Készenlét'}
-            </span>
+            <span className="hidden items-center gap-2 sm:flex">{statusDot}</span>
           </div>
         </header>
 
-        {/* Központi rajtvezérlő pult */}
-        <div className="border-b border-[oklch(0.42_0.04_248)] bg-[linear-gradient(180deg,oklch(0.22_0.03_250),oklch(0.16_0.025_250))] px-4 py-4">
-          <StartConsole
-            startState={startState}
-            countdown={countdown}
-            hasStarted={hasStarted}
-            penaltyRemainingSec={penaltyRemainingSec}
-            onStart={handleStart}
-          />
-        </div>
+        {isDesktop === null ? (
+          <div className="flex flex-1 items-center justify-center py-20">
+            <span className="label-caps text-[11px] text-[oklch(0.7_0.03_92/0.5)]">Műszerfal betöltése…</span>
+          </div>
+        ) : isDesktop ? (
+          /* ======================= ASZTALI: EGY KERETES HÁZ ======================= */
+          <div className="p-3">
+            <div
+              className="relative rounded-[16px] p-2"
+              style={{
+                border: '2px solid oklch(0.5 0.08 74 / 0.55)',
+                background: 'linear-gradient(180deg, oklch(0.205 0.04 242), oklch(0.165 0.035 245))',
+                boxShadow: '0 0 0 3px oklch(0.22 0.035 245), 0 0 0 5px oklch(0.42 0.07 72 / 0.32), 0 22px 55px rgba(0,0,0,0.5), inset 0 1px 0 oklch(0.6 0.05 235 / 0.2)',
+              }}
+            >
+              {screw('left-2.5 top-2.5')}
+              {screw('right-2.5 top-2.5')}
+              {screw('bottom-2.5 left-2.5')}
+              {screw('bottom-2.5 right-2.5')}
 
-        <NavConsole warnings={warnings} />
-
-        <main className="flex flex-1 flex-col gap-3 overflow-auto p-3">
-
-          {/* SOR 1: Térkép + Fedélzeti kamera */}
-          <div className="flex shrink-0 flex-col gap-1.5">
-            <SectionLabel code="NAV">Navigáció &amp; Fedélzeti kamera</SectionLabel>
-            <div className="grid gap-3 lg:h-[380px] lg:grid-cols-[1fr_507px]">
-              <div className="h-[380px] overflow-hidden">
-                <RaceChart />
+              {/* Rajtvezérlő + HUD egy fülkében */}
+              <div className="px-1 pt-1">
+                <StartConsole
+                  startState={startState}
+                  countdown={countdown}
+                  hasStarted={hasStarted}
+                  penaltyRemainingSec={penaltyRemainingSec}
+                  onStart={handleStart}
+                />
               </div>
-              {/* Retró CRT monitor */}
-              <Panel code="CAM" title="Fedélzeti kép" bodyClassName="p-0" className="hidden w-[507px] lg:flex">
-                <div className="crt-scanlines relative flex h-full items-center justify-center overflow-hidden bg-[oklch(0.16_0.01_250)] shadow-[inset_0_0_30px_oklch(0_0_0/0.7)]">
-                  <span className="label-caps text-[11px] text-[oklch(0.7_0.02_92/0.35)]">Élő kép — várakozás</span>
-                  <span className="absolute bottom-2 right-3 font-mono text-[10px] tracking-widest text-[oklch(0.6_0.14_28/0.75)]">● REC</span>
+              <NavConsole warnings={warnings} />
+
+              {/* FŐ TERÜLET: plotter + szélmérő */}
+              <div className="grid gap-3 p-3 lg:grid-cols-[1fr_360px]">
+                <div className="overflow-hidden lg:h-[420px]">
+                  <RaceChart />
                 </div>
-              </Panel>
-            </div>
-          </div>
+                <div className="overflow-hidden lg:h-[420px]">
+                  <WindDial />
+                </div>
+              </div>
 
-          {/* SOR 2: Szélmérő + Dőlés + Vitorla-trim */}
-          <div className="flex shrink-0 flex-col gap-1.5">
-            <SectionLabel code="TRIM">Szélmérő · Dőlésmérő · Vitorlaállítás</SectionLabel>
-            <div className="grid gap-3 lg:h-[460px] lg:grid-cols-[210px_210px_1fr]">
-              <div className="overflow-hidden lg:h-[460px]">
-                <WindDial />
+              {/* VEZÉRLŐKONZOL: vitorla-trim + dőlés + RAJT-állapot */}
+              <div className="grid gap-3 px-3 pb-3 lg:grid-cols-[1fr_360px]">
+                <div className="overflow-hidden lg:h-[460px]">
+                  <SailTrim onWarningsChange={setWarnings} onTrimChange={handleTrimChange} />
+                </div>
+                <Panel code="HEEL" title="Dőlésmérő" bodyClassName="flex items-center justify-center p-3" className="lg:h-[460px]">
+                  <HeelIndicator heel={heel} />
+                </Panel>
               </div>
-              <Panel code="HEEL" title="Dőlésmérő" bodyClassName="flex items-center justify-center p-3" className="min-h-[240px] lg:min-h-0">
-                <HeelIndicator heel={heel} />
-              </Panel>
-              <div className="overflow-hidden lg:h-[460px]">
-                <SailTrim onWarningsChange={setWarnings} onTrimChange={handleTrimChange} />
-              </div>
-            </div>
-          </div>
 
-          {/* SOR 3: Versenyállás + Időjárás + Taktika */}
-          <div className="flex flex-col gap-1.5 lg:flex-1">
-            <SectionLabel code="INFO">Versenyállás · Előrejelzés · Taktika</SectionLabel>
-            <div className="grid min-h-[160px] gap-3 lg:flex-1 lg:grid-cols-3">
-              <div className="overflow-hidden">
-                <FleetStandings />
-              </div>
-              <div className="overflow-hidden">
-                <ConditionsForecast />
-              </div>
-              <div className="overflow-hidden">
-                <TacticalBrief />
+              {/* INFO: állás · előrejelzés · taktika */}
+              <div className="grid gap-3 px-3 pb-3 lg:grid-cols-3">
+                <div className="min-h-[200px] overflow-hidden">
+                  <FleetStandings />
+                </div>
+                <div className="min-h-[200px] overflow-hidden">
+                  <ConditionsForecast />
+                </div>
+                <div className="min-h-[200px] overflow-hidden">
+                  <TacticalBrief />
+                </div>
               </div>
             </div>
           </div>
+        ) : (
+          /* ======================= MOBIL: FÜLEZETT MFD ======================= */
+          <div className="flex flex-1 flex-col pb-[60px]">
+            {/* Mindig látható rajtvezérlő */}
+            <div className="px-2 pt-2">
+              <StartConsole
+                startState={startState}
+                countdown={countdown}
+                hasStarted={hasStarted}
+                penaltyRemainingSec={penaltyRemainingSec}
+                onStart={handleStart}
+              />
+            </div>
 
-        </main>
+            {/* Aktív fül tartalma */}
+            <div className="flex-1 overflow-auto p-2">
+              {mobileTab === 'nav' && <NavConsole warnings={warnings} />}
+              {mobileTab === 'wind' && <WindDial />}
+              {mobileTab === 'heel' && (
+                <Panel code="HEEL" title="Dőlésmérő" bodyClassName="flex items-center justify-center p-3" className="min-h-[300px]">
+                  <HeelIndicator heel={heel} />
+                </Panel>
+              )}
+              {mobileTab === 'trim' && <SailTrim onWarningsChange={setWarnings} onTrimChange={handleTrimChange} />}
+              {mobileTab === 'map' && (
+                <div className="h-[440px] overflow-hidden">
+                  <RaceChart />
+                </div>
+              )}
+              {mobileTab === 'standings' && (
+                <div className="flex flex-col gap-2">
+                  <FleetStandings />
+                  <ConditionsForecast />
+                  <TacticalBrief />
+                </div>
+              )}
+            </div>
+
+            {/* Alsó fülsor */}
+            <nav className="fixed inset-x-0 bottom-0 z-50 flex border-t border-[oklch(0.42_0.05_240/0.6)] bg-[linear-gradient(180deg,oklch(0.22_0.035_244),oklch(0.16_0.03_246))]">
+              {MTABS.map(([key, label]) => {
+                const on = mobileTab === key
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setMobileTab(key)}
+                    className="label-caps flex-1 py-2.5 text-[9px] leading-none transition-colors"
+                    style={{
+                      color: on ? 'oklch(0.92 0.03 88)' : 'oklch(0.62 0.03 230)',
+                      borderTop: on ? '2px solid var(--gold, oklch(0.78 0.1 84))' : '2px solid transparent',
+                      background: on ? 'oklch(0.3 0.05 238 / 0.5)' : 'transparent',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </nav>
+          </div>
+        )}
+
       </div>
     </div>
   )
