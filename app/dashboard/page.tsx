@@ -3,14 +3,14 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sailboat, ChevronLeft, Pause } from 'lucide-react'
-import { StatusBar } from '@/components/status-bar'
+import { NavConsole } from '@/components/nav-console'
 import { WindDial } from '@/components/wind-dial'
 import { RaceChart } from '@/components/race-chart'
 import { FleetStandings } from '@/components/fleet-standings'
 import { SailTrim, TrimSnapshot } from '@/components/sail-trim'
 import { ConditionsForecast } from '@/components/conditions-forecast'
 import { TacticalBrief } from '@/components/tactical-brief'
-import { WarningPanel, WarningState } from '@/components/warning-panel'
+import { WarningState } from '@/components/warning-panel'
 import { getPocketBase } from '@/lib/pocketbase'
 import { useRace } from '@/components/race-context'
 import { HeelIndicator } from '@/components/heel-indicator'
@@ -482,8 +482,7 @@ export default function Page() {
           />
         </div>
 
-        <StatusBar />
-        <WarningPanel warnings={warnings} />
+        <NavConsole warnings={warnings} />
 
         <main className="flex flex-1 flex-col gap-3 overflow-auto p-3">
 
