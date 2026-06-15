@@ -167,10 +167,10 @@ export function NavConsole({ warnings }: { warnings: WarningState }) {
       {/* Telemetria — reszponzív rács, nem lóg túl */}
       <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-6">
         {cells.map(([label, value, unit]) => (
-          <div key={label} className="crt-cell px-1.5 py-1.5 text-center">
-            <p className="crt-dim label-caps text-[7px]">{label}</p>
-            <p className="crt-glow font-mono text-[15px] font-bold leading-tight tabular-nums">
-              {value}{unit && <span className="crt-dim ml-0.5 text-[8px]">{unit}</span>}
+          <div key={label} className="crt-cell px-1.5 py-2 text-center">
+            <p className="crt-dim label-caps text-[9px]">{label}</p>
+            <p className="crt-glow font-mono text-[19px] font-bold leading-tight tabular-nums">
+              {value}{unit && <span className="crt-dim ml-0.5 text-[10px]">{unit}</span>}
             </p>
           </div>
         ))}
@@ -182,13 +182,13 @@ export function NavConsole({ warnings }: { warnings: WarningState }) {
           const l = lampOf(warnings, id)
           const c = COLORS[l.state]
           return (
-            <div key={id} className="crt-cell flex items-center gap-1.5 px-2 py-1.5">
+            <div key={id} className="crt-cell flex items-center gap-1.5 px-2 py-2">
               <span style={{
-                width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
+                width: 11, height: 11, borderRadius: '50%', flexShrink: 0,
                 background: c.dot, boxShadow: c.glow,
                 animation: l.blink ? 'navBlink 0.55s steps(1) infinite' : 'none',
               }} />
-              <span className="label-caps truncate text-[8px]" style={{ color: c.txt }}>{l.label}</span>
+              <span className="label-caps truncate text-[10px]" style={{ color: c.txt }}>{l.label}</span>
             </div>
           )
         })}
