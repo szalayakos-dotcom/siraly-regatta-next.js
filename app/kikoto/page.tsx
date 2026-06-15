@@ -133,6 +133,9 @@ export default function KikotoPage() {
   const [myRaces, setMyRaces] = useState<string[]>([])
   const [standings, setStandings] = useState<any[]>([])
   const [absoluteStandings, setAbsoluteStandings] = useState<any[]>([])
+  const [leaderboard, setLeaderboard] = useState<any[]>([])
+  const [lastPodium, setLastPodium] = useState<{ name: string }[]>([])
+  const [lastRaceName, setLastRaceName] = useState('')
   const [classCount, setClassCount] = useState(1)
   const CLASS_LABELS: Record<string, string> = {
     '9g4us1y1ye7afym': 'Ys.I', '40t0bopld7pwwo4': 'Ys.II', 'lgtakoks0p1jnvd': 'Ys.III',
@@ -143,6 +146,44 @@ export default function KikotoPage() {
   const [username, setUsername] = useState('')
   const [credits, setCredits] = useState(0)
   const [mounted, setMounted] = useState(false)
+
+  // Örök ranglista + legutóbbi futam dobogója — versenytől függetlenül, mindig betölt
+  useEffect(() => {
+    if (!mounted) return
+    const pb = getPocketBase()
+    async function loadHall() {
+      try {
+        const profs = await pb.collection('player_profiles').getList(1, 10, { sort: '-total_wins,-credits' })
+        setLeaderboard(profs.items.map((p: any) => ({
+          name: p.display_name || 'Versenyző',
+          wins: p.total_wins || 0,
+          credits: p.credits || 0,
+        })))
+      } catch {}
+      try {
+        const finished = await pb.collection('races').getList(1, 1, { filter: 'status="finished"', sort: '-finished_at' })
+        if (finished.items.length) {
+          const lr = finished.items[0]
+          setLastRaceName(lr.name || '')
+          const top = await pb.collection('race_positions').getList(1, 3, {
+            filter: `race_id="${lr.id}" && status="finished"`, sort: 'finished_at',
+          })
+          const podium = await Promise.all(top.items.map(async (p: any) => {
+            let name = 'Versenyző'
+            try {
+              const prof = await pb.collection('player_profiles').getFirstListItem(`player_id="${p.player_id}"`)
+              name = prof.display_name || name
+            } catch {}
+            return { name }
+          }))
+          setLastPodium(podium)
+        }
+      } catch {}
+    }
+    loadHall()
+    const i = setInterval(loadHall, 30000)
+    return () => clearInterval(i)
+  }, [mounted])
   const [authModal, setAuthModal] = useState<'login'|'register'|null>(null)
   const [chatMsgs, setChatMsgs] = useState<ChatMsg[]>([])
   const [userFinished, setUserFinished] = useState(false)
@@ -588,15 +629,8 @@ export default function KikotoPage() {
         </header>
 
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-          {!selectedRace ? (
-            <div className="rounded-lg border border-border bg-card p-12 text-center">
-              <Anchor className="mx-auto mb-3 size-10 text-muted-foreground"/>
-              <p className="mb-1 font-heading text-lg font-semibold text-foreground">Nincs aktív verseny</p>
-              <p className="text-sm text-muted-foreground">Hamarosan érkezik a következő kiírás!</p>
-            </div>
-          ) : (
-            <div className="space-y-5">
-              {/* ADAPTÍV VERSENY-FEJ — countdown vagy élő futamidő */}
+          <div className="space-y-5">
+            {selectedRace && (
               <RaceHero
                 race={selectedRace}
                 isActive={!!isActive}
@@ -608,10 +642,19 @@ export default function KikotoPage() {
                 topStanding={standings[0]}
                 canEnterDeck={canEnterDeck}
               />
+            )}
 
-              <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-                {/* Térkép + állás */}
-                <div className="space-y-5 lg:col-span-2">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+              {/* BAL: térkép + állás, vagy üres állapot ha nincs verseny */}
+              <div className="space-y-5 lg:col-span-2">
+                {!selectedRace ? (
+                  <div className="rounded-lg border border-border bg-card p-12 text-center">
+                    <Anchor className="mx-auto mb-3 size-10 text-muted-foreground"/>
+                    <p className="mb-1 font-heading text-lg font-semibold text-foreground">Nincs aktív verseny</p>
+                    <p className="text-sm text-muted-foreground">Hamarosan érkezik a következő kiírás!</p>
+                  </div>
+                ) : (
+                  <>
                   <div className="relative isolate z-0 overflow-hidden rounded-lg border border-border bg-card">
                     <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
                       <p className="font-heading text-sm font-semibold text-foreground">Pálya · élő pozíciók</p>
@@ -686,10 +729,59 @@ export default function KikotoPage() {
                       </div>
                     )}
                   </div>
+                  </>
+                )}
+              </div>
+
+              {/* JOBB OSZLOP — mindig látszik: dobogó, örök ranglista, chat */}
+              <div className="space-y-5">
+                {/* Legutóbbi futam dobogója */}
+                <div className="rounded-lg border border-border bg-card p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Medal className="size-4 text-[var(--gold)]" strokeWidth={2}/>
+                    <p className="font-heading text-sm font-semibold text-foreground">Legutóbbi futam dobogója</p>
+                  </div>
+                  {lastPodium.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Még nem zárult le verseny.</p>
+                  ) : (
+                    <>
+                      {lastRaceName && <p className="mb-2 text-[11px] text-muted-foreground">{lastRaceName}</p>}
+                      <div className="space-y-1">
+                        {lastPodium.map((p, i) => (
+                          <div key={i} className="flex items-center gap-2 rounded-md px-2 py-1.5 odd:bg-muted/40">
+                            <span className={`flex w-5 shrink-0 justify-center font-heading text-sm font-black ${i===0?'text-[var(--gold)]':i===1?'text-muted-foreground':'text-primary'}`}>{i+1}</span>
+                            <span className="flex-1 truncate font-heading text-xs font-semibold text-foreground">{p.name}</span>
+                            {i===0 && <Medal className="size-3.5 text-[var(--gold)]"/>}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
 
-                {/* Info, nyeremények, chat */}
-                <div className="space-y-5">
+                {/* Örök ranglista */}
+                <div className="rounded-lg border border-border bg-card p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Trophy className="size-4 text-accent" strokeWidth={2}/>
+                    <p className="font-heading text-sm font-semibold text-foreground">Örök ranglista</p>
+                  </div>
+                  {leaderboard.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Még nincs adat.</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {leaderboard.map((p, i) => (
+                        <div key={i} className="flex items-center gap-2 rounded-md px-2 py-1.5 odd:bg-muted/40">
+                          <span className={`flex w-5 shrink-0 justify-center font-heading text-sm font-black ${i===0?'text-[var(--gold)]':i===1?'text-muted-foreground':i===2?'text-primary':'text-muted-foreground'}`}>{i+1}</span>
+                          <span className="flex-1 truncate font-heading text-xs font-semibold text-foreground">{p.name}</span>
+                          <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><Trophy className="size-3"/>{p.wins}</span>
+                          <span className="w-16 text-right font-mono text-[10px] tabular-nums text-muted-foreground">{p.credits} kr</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {selectedRace && (<>
                   <div className="rounded-lg border border-border bg-card p-4">
                     <div className="mb-2 flex items-center gap-2">
                       <Flag className="size-4 text-accent" strokeWidth={2}/>
@@ -725,10 +817,12 @@ export default function KikotoPage() {
                       </div>
                     ))}
                   </div>
+                </>)}
 
-                  <div className="flex h-[320px] flex-col rounded-lg border border-border bg-card">
-                    <div className="shrink-0 border-b border-border px-4 py-3">
-                      <p className="font-heading text-sm font-semibold text-foreground">Kikötői chat</p>
+                {/* Kikötői chat — mindig látszik */}
+                <div className="flex h-[320px] flex-col rounded-lg border border-border bg-card">
+                  <div className="shrink-0 border-b border-border px-4 py-3">
+                    <p className="font-heading text-sm font-semibold text-foreground">Kikötői chat</p>
                     </div>
                     <div className="flex-1 space-y-1.5 overflow-y-auto px-4 py-3">
                       {chatMsgs.map(msg => (
@@ -761,7 +855,6 @@ export default function KikotoPage() {
                 </div>
               </div>
             </div>
-          )}
         </div>
       </div>
     </div>
