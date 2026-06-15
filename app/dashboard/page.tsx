@@ -403,7 +403,7 @@ export default function Page() {
   const startReady = startState === 'ready' && !hasStarted
 
   return (
-    <div className="flex min-h-screen flex-col overflow-x-hidden bg-[oklch(0.93_0.02_250)]">
+    <div className="cockpit flex min-h-screen flex-col overflow-x-hidden" style={{ background: 'radial-gradient(150% 100% at 50% -12%, oklch(0.31 0.05 238), oklch(0.165 0.035 245) 68%)' }}>
       <div className="relative flex min-w-0 flex-1 flex-col">
 
         {/* Szünet overlay */}

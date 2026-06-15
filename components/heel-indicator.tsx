@@ -1,104 +1,84 @@
 'use client'
 
 interface HeelIndicatorProps {
-  heel: number // -40 to +40 fok, pozitív = jobb
+  heel: number // -40..+40 fok, pozitív = jobb (SB)
 }
 
-const D2R = Math.PI / 180
+const SEG = 21          // szegmensek száma
+const CENTER = 10       // középső index = 0°
+const PER = 4           // fok / szegmens
 
 export function HeelIndicator({ heel = 0 }: HeelIndicatorProps) {
   const clamped = Math.max(-40, Math.min(40, heel))
-  const cx = 100, cy = 110, r = 78
   const danger = Math.abs(clamped) > 25
+  const warn = Math.abs(clamped) > 18
+  const capsize = Math.abs(clamped) > 33
+  const pos = Math.round(clamped / PER) // -10..+10
+  const side = clamped === 0 ? '' : clamped > 0 ? 'JOBB · SB' : 'BAL · BB'
 
-  // Tű szöge: 0° = függőlegesen fel, ± = oldalra
-  const needleRad = (clamped - 90) * D2R
-  const needleLen = 62
-  const tipX = cx + Math.cos(needleRad) * needleLen
-  const tipY = cy + Math.sin(needleRad) * needleLen
-
-  // Skála ticks (-40..40, 10-esével)
-  const ticks = [-40, -30, -20, -10, 0, 10, 20, 30, 40]
+  const valueColor = danger ? 'crt-red' : warn ? 'crt-amber' : 'crt-glow'
 
   return (
-    <div className="gauge-housing aspect-square w-full shrink-0" style={{ maxWidth: 'min(100%, 320px)' }}>
-      <div className="gauge-face">
-        <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full">
-          {/* Biztonságos zóna ív (zöld) */}
-          <path
-            d={describeArc(cx, cy, r - 6, -25, 25)}
-            fill="none" stroke="oklch(0.6 0.13 165 / 0.5)" strokeWidth="5" strokeLinecap="round"
-          />
-          {/* Veszélyzónák (piros) */}
-          <path d={describeArc(cx, cy, r - 6, -40, -25)} fill="none" stroke="oklch(0.58 0.2 28 / 0.6)" strokeWidth="5" strokeLinecap="round" />
-          <path d={describeArc(cx, cy, r - 6, 25, 40)} fill="none" stroke="oklch(0.58 0.2 28 / 0.6)" strokeWidth="5" strokeLinecap="round" />
+    <div className="crt-screen flex w-full flex-col items-center justify-center gap-3 p-4">
+      {/* Nagy digitális fok */}
+      <div className="flex flex-col items-center leading-none">
+        <span className={`font-mono text-[46px] font-bold tabular-nums ${valueColor}`}>
+          {clamped > 0 ? '+' : ''}{clamped.toFixed(1)}<span className="text-2xl">°</span>
+        </span>
+        <span className="crt-dim mt-1 font-heading text-sm font-bold tracking-[0.25em]">
+          {side || 'VÍZSZINTES'}
+        </span>
+      </div>
 
-          {/* Skála ticks */}
-          {ticks.map((deg) => {
-            const major = deg % 20 === 0
-            const a = (deg - 90) * D2R
-            const rOut = r - 1
-            const rIn = major ? r - 14 : r - 9
-            const x1 = cx + Math.cos(a) * rIn
-            const y1 = cy + Math.sin(a) * rIn
-            const x2 = cx + Math.cos(a) * rOut
-            const y2 = cy + Math.sin(a) * rOut
-            const lx = cx + Math.cos(a) * (r - 22)
-            const ly = cy + Math.sin(a) * (r - 22)
-            return (
-              <g key={deg}>
-                <line x1={x1} y1={y1} x2={x2} y2={y2}
-                  stroke={Math.abs(deg) >= 30 ? 'oklch(0.62 0.2 28)' : major ? 'oklch(0.86 0.04 88)' : 'oklch(0.6 0.04 230)'}
-                  strokeWidth={major ? 1.4 : 0.7} />
-                {major && (
-                  <text x={lx} y={ly + 2.5} textAnchor="middle"
-                    fill="oklch(0.7 0.04 90)" className="font-mono" fontSize="7">
-                    {Math.abs(deg)}
-                  </text>
-                )}
-              </g>
-            )
-          })}
+      {/* Digitális szintjelző — szegmentált sáv, középről a dőlés felé világít */}
+      <div className="flex w-full max-w-[280px] items-end justify-between gap-[2px]" aria-hidden>
+        {Array.from({ length: SEG }, (_, i) => {
+          const off = i - CENTER
+          const isCenter = off === 0
+          const lit = pos === 0 ? isCenter
+            : pos > 0 ? (off > 0 && off <= pos)
+            : (off < 0 && off >= pos)
+          const tall = isCenter || Math.abs(off) % 5 === 0
+          const litColor = danger ? 'oklch(0.66 0.22 28)' : warn ? 'oklch(0.82 0.15 70)' : 'oklch(0.86 0.2 162)'
+          return (
+            <span key={i}
+              style={{
+                flex: 1,
+                height: tall ? 26 : 18,
+                borderRadius: 2,
+                background: lit ? litColor
+                  : isCenter ? 'oklch(0.7 0.06 165 / 0.6)'
+                  : 'oklch(0.45 0.08 168 / 0.3)',
+                boxShadow: lit ? `0 0 6px ${litColor}` : 'none',
+              }} />
+          )
+        })}
+      </div>
 
-          {/* Oldal feliratok */}
-          <text x={cx - r + 6} y={cy + 6} textAnchor="middle" fill="oklch(0.6 0.04 230)" className="font-mono" fontSize="8">BB</text>
-          <text x={cx + r - 6} y={cy + 6} textAnchor="middle" fill="oklch(0.6 0.04 230)" className="font-mono" fontSize="8">SB</text>
+      <div className="flex w-full max-w-[280px] items-center justify-between">
+        <span className="crt-dim font-mono text-[10px]">BB ◄</span>
+        <span className="crt-dim font-mono text-[10px]">0°</span>
+        <span className="crt-dim font-mono text-[10px]">► SB</span>
+      </div>
 
-          {/* Tű */}
-          <line x1={cx} y1={cy} x2={tipX} y2={tipY}
-            stroke={danger ? 'oklch(0.62 0.22 28)' : 'oklch(0.92 0.03 88)'} strokeWidth="2.5" strokeLinecap="round" />
-          <circle cx={tipX} cy={tipY} r="3" fill={danger ? 'oklch(0.62 0.22 28)' : 'oklch(0.92 0.03 88)'} />
-
-          {/* Tengely-csavar */}
-          <circle cx={cx} cy={cy} r="7" fill="oklch(0.7 0.1 78)" stroke="oklch(0.4 0.06 70)" strokeWidth="1" />
-          <circle cx={cx} cy={cy} r="2.5" fill="oklch(0.3 0.04 250)" />
-
-          {/* LCD fok-kijelző */}
-          <foreignObject x="62" y="138" width="76" height="34">
-            <div className={`lcd-screen ${danger ? '' : ''} flex h-full w-full flex-col items-center justify-center leading-none`}>
-              <span className="text-[16px] font-bold tracking-tight" style={danger ? { color: 'oklch(0.78 0.18 30)', textShadow: '0 0 6px oklch(0.7 0.2 30 / 0.8)' } : undefined}>
-                {clamped > 0 ? '+' : ''}{clamped.toFixed(1)}°
-              </span>
-              <span className="text-[7px] opacity-75">DŐLÉS</span>
-            </div>
-          </foreignObject>
-
-          <div className="glass-dome" />
-        </svg>
-        <div className="glass-dome" />
+      {/* Leszúrás vészjelző lámpa */}
+      <style>{`@keyframes heelBlink{0%,49%{opacity:1}50%,100%{opacity:.15}}`}</style>
+      <div className="mt-1 flex items-center gap-2.5 rounded-md border px-3 py-1.5"
+        style={{
+          borderColor: capsize ? 'oklch(0.6 0.2 28 / 0.6)' : warn ? 'oklch(0.7 0.13 70 / 0.5)' : 'oklch(0.4 0.08 168 / 0.4)',
+          background: capsize ? 'oklch(0.4 0.14 28 / 0.18)' : 'oklch(0.16 0.04 172 / 0.6)',
+        }}>
+        <span style={{
+          width: 13, height: 13, borderRadius: '50%', flexShrink: 0,
+          background: capsize ? 'oklch(0.66 0.24 28)' : warn ? 'oklch(0.82 0.16 70)' : 'oklch(0.5 0.14 162)',
+          boxShadow: capsize ? '0 0 12px oklch(0.66 0.24 28)' : warn ? '0 0 9px oklch(0.82 0.16 70)' : '0 0 5px oklch(0.5 0.14 162 / 0.7)',
+          animation: capsize ? 'heelBlink 0.55s steps(1) infinite' : 'none',
+        }} />
+        <span className={`label-caps text-[10px] tracking-[0.18em] ${capsize ? 'crt-red' : warn ? 'crt-amber' : 'crt-dim'}`}
+          style={capsize ? { animation: 'heelBlink 0.55s steps(1) infinite' } : undefined}>
+          {capsize ? '⚠ LESZÚRÁSVESZÉLY' : warn ? 'FOKOZOTT DŐLÉS' : 'LESZÚRÁS ŐR · OK'}
+        </span>
       </div>
     </div>
   )
-}
-
-function polarToXY(cx: number, cy: number, r: number, deg: number) {
-  const a = (deg - 90) * D2R
-  return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) }
-}
-
-function describeArc(cx: number, cy: number, r: number, startDeg: number, endDeg: number) {
-  const start = polarToXY(cx, cy, r, endDeg)
-  const end = polarToXY(cx, cy, r, startDeg)
-  const large = endDeg - startDeg <= 180 ? 0 : 1
-  return `M ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${r} ${r} 0 ${large} 0 ${end.x.toFixed(2)} ${end.y.toFixed(2)}`
 }

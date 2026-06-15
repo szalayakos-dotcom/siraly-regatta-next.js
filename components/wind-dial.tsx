@@ -11,15 +11,9 @@ const polar = (deg: number, r: number, cx = 100, cy = 100) => {
   const a = (deg - 90) * D2R
   return [cx + r * Math.cos(a), cy + r * Math.sin(a)] as const
 }
-const arcSeg = (startDeg: number, endDeg: number, r: number) => {
-  const [x2, y2] = polar(endDeg, r)
-  const large = ((endDeg - startDeg + 360) % 360) > 180 ? 1 : 0
-  return `A ${r} ${r} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`
-}
 
-const ticks = Array.from({ length: 72 }, (_, i) => i * 5)
-const cardinals: [string, number][] = [['N',0],['E',90],['S',180],['W',270]]
-const noGoHalfAngle = 40
+const ringTicks = Array.from({ length: 36 }, (_, i) => i * 10)
+const cardinals: [string, number][] = [['É', 0], ['K', 90], ['D', 180], ['NY', 270]]
 
 export function WindDial() {
   const { raceId } = useRace()
@@ -32,9 +26,10 @@ export function WindDial() {
   const [driftAngle, setDriftAngle] = useState(0)
   const [sog, setSog] = useState(0)
 
-  // Apparent wind számítás (közelítés)
-  const appWindDir = Math.round((trueWindDir + hdg * 0.05) % 360)
   const appWindSpd = Math.round(trueWindSpd * 0.92 * 10) / 10
+  const twaRaw = ((trueWindDir - hdg + 540) % 360) - 180
+  const twaAbs = Math.abs(Math.round(twaRaw))
+  const twaSide = twaRaw === 0 ? '' : twaRaw < 0 ? 'P' : 'S'
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -78,136 +73,96 @@ export function WindDial() {
 
   if (!mounted) return null
 
-  return (
-    <Panel title="Szél & Irány" code="WX-1" bodyClassName="flex flex-col items-center gap-3">
-      {/* Süllyesztett sárgaréz műszerház üvegdómmal */}
-      <div className="gauge-housing aspect-square w-full shrink-0" style={{ maxWidth: "min(100%, 320px)" }}>
-        <div className="gauge-face">
-          <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full">
-            {/* No-go zone */}
-            <path
-              d={`M 100 100 L ${polar(trueWindDir - noGoHalfAngle, 78).join(' ')} ${arcSeg(trueWindDir - noGoHalfAngle, trueWindDir + noGoHalfAngle, 78)} Z`}
-              fill="oklch(0.6 0.17 42 / 0.12)" stroke="oklch(0.6 0.17 42 / 0.35)"
-              strokeWidth="0.5" strokeDasharray="2 2"
-            />
+  const windIdx = Math.round(trueWindDir / 10) % 36
+  const hdgIdx = Math.round(hdg / 10) % 36
 
-            {/* Ticks */}
-            {ticks.map((deg) => {
-              const major = deg % 30 === 0
-              const mid = deg % 10 === 0
-              const [x1, y1] = polar(deg, major ? 78 : mid ? 82 : 85)
-              const [x2, y2] = polar(deg, 89)
+  return (
+    <Panel title="Szél & Irány" code="WX-1" bodyClassName="p-2.5">
+      <div className="crt-screen flex flex-col gap-2.5 p-3">
+        {/* Digitális iránytű — mutató nélkül, világító szegmensekkel */}
+        <div className="relative mx-auto aspect-square w-full" style={{ maxWidth: 'min(100%, 280px)' }}>
+          <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full">
+            <defs>
+              <filter id="crtGlow" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="2.2" result="b" />
+                <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
+            </defs>
+            <circle cx="100" cy="100" r="92" fill="none" stroke="oklch(0.42 0.09 168 / 0.35)" strokeWidth="1" />
+            <circle cx="100" cy="100" r="62" fill="none" stroke="oklch(0.42 0.09 168 / 0.2)" strokeWidth="0.75" />
+
+            {ringTicks.map((deg, i) => {
+              const [x1, y1] = polar(deg, 80)
+              const [x2, y2] = polar(deg, deg % 30 === 0 ? 70 : 76)
+              const isWind = i === windIdx || (i + 1) % 36 === windIdx || (i - 1 + 36) % 36 === windIdx
+              const isHdg = i === hdgIdx
               return (
                 <line key={deg} x1={x1} y1={y1} x2={x2} y2={y2}
-                  stroke={major ? 'oklch(0.86 0.04 88)' : 'oklch(0.6 0.04 230)'}
-                  strokeWidth={major ? 1.25 : mid ? 0.6 : 0.35}
-                />
+                  stroke={isWind ? 'oklch(0.88 0.2 162)' : isHdg ? 'oklch(0.82 0.14 70)' : 'oklch(0.5 0.09 168 / 0.55)'}
+                  strokeWidth={isWind ? 2.4 : deg % 30 === 0 ? 1.3 : 0.7}
+                  strokeLinecap="round" />
               )
             })}
 
-            {/* Degree labels */}
-            {Array.from({ length: 12 }, (_, i) => i * 30).map((deg) => {
-              if (deg % 90 === 0) return null
-              const [x, y] = polar(deg, 70)
-              return (
-                <text key={deg} x={x} y={y + 2.5} textAnchor="middle"
-                  fill="oklch(0.6 0.04 230)" className="font-mono" fontSize="6">
-                  {deg}
-                </text>
-              )
-            })}
-
-            {/* Cardinals */}
             {cardinals.map(([label, deg]) => {
-              const [x, y] = polar(deg, 70)
+              const [x, y] = polar(deg, 90)
               return (
-                <text key={label} x={x} y={y + 4} textAnchor="middle"
-                  fill={label === 'N' ? 'oklch(0.6 0.17 42)' : 'oklch(0.88 0.03 88)'}
-                  className="font-heading" fontSize={label === 'N' ? 12 : 11}
-                  fontWeight="bold">
+                <text key={label} x={x} y={y + 3} textAnchor="middle" fontSize="8"
+                  className="font-heading" fontWeight="bold"
+                  fill={deg === 0 ? 'oklch(0.85 0.18 30)' : 'oklch(0.7 0.13 162)'}>
                   {label}
                 </text>
               )
             })}
 
-            {/* COG — szaggatott */}
-            <g transform={`rotate(${cog} 100 100)`}>
-              <line x1="100" y1="100" x2="100" y2="34"
-                stroke="oklch(0.62 0.1 200)" strokeWidth="1.25" strokeDasharray="4 3"/>
-              <circle cx="100" cy="34" r="3" fill="oklch(0.62 0.1 200)"/>
+            {/* SZÉL iránymutató — nagy zöld nyíl, befelé mutat (innen fúj) */}
+            <g transform={`rotate(${trueWindDir} 100 100)`} filter="url(#crtGlow)">
+              <rect x="97.5" y="22" width="5" height="22" rx="2" fill="oklch(0.85 0.2 162)" />
+              <polygon points="100,10 89,30 100,24 111,30" fill="oklch(0.9 0.22 162)" />
             </g>
-
-            {/* HDG — fő mutató */}
-            <g transform={`rotate(${hdg} 100 100)`}>
-              <polygon points="100,30 93,104 107,104" fill="oklch(0.92 0.03 88)"/>
-              <polygon points="100,170 96,100 104,100" fill="oklch(0.55 0.03 235)"/>
+            {/* HAJÓORR iránymutató — borostyán nyíl, kifelé mutat (merre néz a hajó) */}
+            <g transform={`rotate(${hdg} 100 100)`} filter="url(#crtGlow)">
+              <rect x="98.5" y="18" width="3" height="16" rx="1.5" fill="oklch(0.82 0.15 70)" />
+              <polygon points="100,6 93,20 107,20" fill="oklch(0.86 0.16 70)" />
             </g>
-
-            {/* True wind */}
-            <g transform={`rotate(${trueWindDir} 100 100)`}>
-              <line x1="100" y1="100" x2="100" y2="40" stroke="oklch(0.66 0.18 42)" strokeWidth="2.75"/>
-              <polygon points="100,34 92,50 108,50" fill="oklch(0.66 0.18 42)"/>
-            </g>
-
-            {/* Apparent wind */}
-            <g transform={`rotate(${appWindDir} 100 100)`}>
-              <line x1="100" y1="100" x2="100" y2="48"
-                stroke="oklch(0.66 0.18 42 / 0.55)" strokeWidth="1.5" strokeDasharray="3 2"/>
-            </g>
-
-            {/* Központi LCD-betét — szél kn + irány */}
-            <foreignObject x="64" y="80" width="72" height="40">
-              <div className="lcd-screen flex h-full w-full flex-col items-center justify-center leading-none">
-                <span className="text-[15px] font-bold tracking-tight">{trueWindSpd}<span className="text-[8px]"> kn</span></span>
-                <span className="text-[8px] opacity-80">{trueWindDir}° {dirLabel(trueWindDir)}</span>
-              </div>
-            </foreignObject>
-
-            {/* Lubber line */}
-            <polygon points="100,8 96,17 104,17" fill="oklch(0.66 0.18 42)"/>
-
-            {/* Üvegdóm csillanás */}
           </svg>
-          <div className="glass-dome" />
+
+          <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
+            <span className="crt-glow font-mono text-[40px] font-bold tabular-nums">{trueWindDir}<span className="text-xl">°</span></span>
+            <span className="crt-glow font-heading text-lg font-bold tracking-[0.25em]">{dirLabel(trueWindDir)}</span>
+            <span className="crt-dim mt-1 font-mono text-[11px] tracking-wide">SZÉL {trueWindSpd} kn</span>
+          </div>
         </div>
-      </div>
 
-      {/* Jelmagyarázat */}
-      <div className="flex w-full flex-wrap items-center justify-center gap-x-4 gap-y-1">
-        {[
-          ['HDG', `${hdg}°`, 'bg-foreground'],
-          ['COG', `${Math.round(cog)}°`, 'bg-secondary'],
-          ['TWD', `${trueWindDir}°`, 'bg-primary'],
-          ['AWD', `${appWindDir}°`, 'bg-primary/55'],
-        ].map(([label, value, dot]) => (
-          <div key={label} className="flex items-center gap-1.5">
-            <span className={`inline-block h-2 w-2 rounded-full ${dot}`} aria-hidden/>
-            <span className="label-caps text-[8px] text-muted-foreground">{label}</span>
-            <span className="font-mono text-[10px] font-semibold text-foreground">{value}</span>
-          </div>
-        ))}
-      </div>
+        <div className="flex items-center justify-center gap-4">
+          <span className="crt-dim flex items-center gap-1.5 text-[8px] tracking-wide">
+            <span style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderBottom: '7px solid oklch(0.88 0.2 162)' }} />SZÉL
+          </span>
+          <span className="crt-dim flex items-center gap-1.5 text-[8px] tracking-wide">
+            <span style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderBottom: '7px solid oklch(0.85 0.15 70)' }} />HAJÓORR
+          </span>
+        </div>
 
-      {/* LCD műszer-kijelzők */}
-      <div className="grid w-full grid-cols-4 gap-1.5">
-        {[
-          ['TWS', `${trueWindSpd}`, 'kn'],
-          ['AWS', `${appWindSpd}`, 'kn'],
-          ['Gust', `${gusts}`, 'kn'],
-          ['SOG', `${sog}`, 'kn'],
-        ].map(([label, value, unit]) => (
-          <div key={label} className="lcd-screen px-1 py-1.5 text-center">
-            <p className="label-caps text-[7px] opacity-70">{label}</p>
-            <p className="text-base font-bold leading-none">{value}</p>
-            <p className="text-[7px] opacity-70">{unit}</p>
-          </div>
-        ))}
+        <div className="grid grid-cols-4 gap-1.5">
+          {([
+            ['TWS', `${trueWindSpd}`, 'kn', false],
+            ['TWA', `${twaAbs}${twaSide}`, '°', false],
+            ['SOG', `${sog}`, 'kn', false],
+            ['LÖKÉS', `${gusts}`, 'kn', true],
+          ] as [string, string, string, boolean][]).map(([label, value, unit, amber]) => (
+            <div key={label} className="crt-cell px-1 py-1.5 text-center">
+              <p className="crt-dim label-caps text-[7px]">{label}</p>
+              <p className={`font-mono text-[17px] font-bold leading-none tabular-nums ${amber ? 'crt-amber' : 'crt-glow'}`}>{value}</p>
+              <p className="crt-dim text-[7px]">{unit}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </Panel>
   )
 }
 
 function dirLabel(deg: number) {
-  const dirs = ['É','ÉK','K','DK','D','DNy','Ny','ÉNy']
+  const dirs = ['É', 'ÉK', 'K', 'DK', 'D', 'DNy', 'Ny', 'ÉNy']
   return dirs[Math.round(deg / 45) % 8]
 }
