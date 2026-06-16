@@ -198,7 +198,7 @@ export function SailTrim({ onWarningsChange, onTrimChange }: {
     const avgDiff = diffs.reduce((a, b) => a + b, 0) / diffs.length
     const trimBonus = Math.round((1 - avgDiff / 100) * 25)
 
-    const base = sailMatch ? 75 : Math.max(20, 55 - (activeSailCount === 0 ? 55 : 0))
+    const base = sailMatch ? 75 : 35
     const eff = Math.min(100, base + trimBonus)
     setTrimEfficiency(eff)
     onWarningsChange?.({

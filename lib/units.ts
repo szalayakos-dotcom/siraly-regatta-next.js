@@ -241,5 +241,14 @@ export function calcSailPenalty(sails: {
   if (abs < 90 && (sails.spinn || sails.genakker))
     return { multiplier: 0.4, warning: 'Bőszeles vitorla szélbe fordulásnál — nem hatékony!' }
 
+  // Szuboptimális de nem tiltott vitorlák
+  // Fock/genua raumban vagy hátszélben genakker/spinn helyett
+  if (abs > 100 && (sails.fock || sails.genua) && !sails.genakker && !sails.spinn)
+    return { multiplier: 0.75, warning: 'Orrvitorla nem hatékony raumban — próbálj genakkert!' }
+
+  // Genakker félszélben (90–100°) — elfogadható de nem optimális
+  if (abs >= 90 && abs <= 100 && sails.genakker)
+    return { multiplier: 0.82, warning: 'Genakker félszélben kissé hatékonyan — genua jobb lenne' }
+
   return { multiplier: 1.0, warning: null }
 }
