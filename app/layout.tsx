@@ -1,56 +1,23 @@
-import { Analytics } from '@vercel/analytics/next'
 import type { Metadata } from 'next'
-import { Playfair_Display, Barlow_Condensed } from 'next/font/google'
-import { RaceProvider } from '@/components/race-context'
-import './globals.css'
-
-const playfair = Playfair_Display({
-  variable: '--font-playfair',
-  subsets: ['latin'],
-  weight: ['700', '800', '900'],
-})
-const barlow = Barlow_Condensed({
-  variable: '--font-barlow',
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-})
 
 export const metadata: Metadata = {
-  title: 'Sirály Regatta — Balatoni Vitorlás Szimulátor',
-  description: 'Balatoni vitorlás szimulátor. Szállj vízre és versenyezz a Balaton legszebb tájain.',
-  generator: 'v0.app',
-  icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
-  },
+  title: 'Sirály Regatta — hamarosan',
+  description: 'A Sirály Regatta hamarosan új formában indul. Iratkozz fel, és szólunk, amikor indul.',
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="hu" className={`${playfair.variable} ${barlow.variable} bg-background`}>
-      <body className="font-sans antialiased">
-        <RaceProvider>
-          {children}
-        </RaceProvider>
-        {process.env.NODE_ENV === 'production' && <Analytics />}
-      </body>
+    <html lang="hu">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Source+Sans+3:wght@400;600&display=swap"
+          rel="stylesheet"
+        />
+        <link rel="preload" as="image" href="/siraly-hamarosan.webp" />
+      </head>
+      <body style={{ margin: 0 }}>{children}</body>
     </html>
   )
 }

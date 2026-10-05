@@ -1,72 +1,65 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Anchor } from 'lucide-react'
+import { useState, type FormEvent } from 'react'
+import s from './page.module.css'
 
-export default function SplashPage() {
-  const router = useRouter()
-  const [mounted, setMounted] = useState(false)
-  const [entering, setEntering] = useState(false)
+// A KVF Supabase-projektje, NYILVÁNOS (anon) kulcs — csak beszúrni enged a
+// siraly_subscribers táblába, olvasni nem (RLS). Ugyanez a kulcs van az index.html-ben is.
+const SB_URL = 'https://lxyxdikxsescjneipznk.supabase.co'
+const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4eXhkaWt4c2VzY2puZWlwem5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDM5MjEsImV4cCI6MjA5NTIxOTkyMX0.WmxT7eUJZ52l9y55ZZTlov8Qw4hKV9cQWIh_g7bMgX4'
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+type State = 'idle' | 'sending' | 'ok' | 'err'
 
-  function handleEnter() {
-    setEntering(true)
-    setTimeout(() => router.push('/landing'), 600)
+export default function Page() {
+  const [email, setEmail] = useState('')
+  const [hp, setHp] = useState('')
+  const [state, setState] = useState<State>('idle')
+
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    if (hp) { setState('ok'); return }            // robot (rejtett mező kitöltve)
+    const v = email.trim().toLowerCase()
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) || v.length > 254) { setState('err'); return }
+    setState('sending')
+    try {
+      const r = await fetch(SB_URL + '/rest/v1/siraly_subscribers', {
+        method: 'POST',
+        headers: {
+          apikey: SB_ANON,
+          Authorization: 'Bearer ' + SB_ANON,
+          'Content-Type': 'application/json',
+          Prefer: 'return=minimal',
+        },
+        body: JSON.stringify({ email: v }),
+      })
+      // 409 = már feliratkozott — a felhasználónak ez is siker
+      setState(r.ok || r.status === 409 ? 'ok' : 'err')
+    } catch {
+      setState('err')
+    }
   }
 
   return (
-    <main className="fixed inset-0 overflow-hidden bg-primary">
-      {/* Háttérkép */}
-      <div
-        className="absolute inset-0 bg-cover bg-center transition-opacity duration-700 ease-out"
-        style={{
-          backgroundImage: 'url(/poster.png)',
-          opacity: mounted && !entering ? 1 : 0,
-        }}
-      />
-
-      {/* Sötét overlay a kontraszthoz */}
-      <div
-        className="absolute inset-0 transition-opacity duration-700 ease-out"
-        style={{
-          background:
-            'linear-gradient(to bottom, color-mix(in oklch, var(--foreground) 12%, transparent) 0%, color-mix(in oklch, var(--foreground) 55%, transparent) 55%, color-mix(in oklch, var(--foreground) 90%, transparent) 100%)',
-          opacity: entering ? 0 : 1,
-        }}
-      />
-
-      {/* Tartalom */}
-      <div
-        className="absolute inset-0 flex flex-col items-center justify-end pb-[12vh] transition-all duration-500 ease-out"
-        style={{
-          opacity: mounted && !entering ? 1 : 0,
-          transform: entering ? 'translateY(20px)' : 'translateY(0)',
-        }}
-      >
-        <div className="mb-12 text-center">
-          <p className="mb-5 flex items-center justify-center gap-3 font-sans text-xs uppercase tracking-[0.4em] text-background/70 sm:text-sm">
-            <Anchor className="h-4 w-4" aria-hidden="true" />
-            Balatoni Vitorlás Szimulátor
-            <Anchor className="h-4 w-4" aria-hidden="true" />
-          </p>
-          <h1 className="text-balance font-serif text-6xl font-black leading-[0.95] tracking-[0.08em] text-background drop-shadow-[0_4px_32px_rgba(0,0,0,0.5)] sm:text-7xl md:text-8xl">
-            SIRÁLY
-            <br />
-            REGATTA
-          </h1>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleEnter}
-          className="rounded-sm border-2 border-background/80 px-14 py-4 font-sans text-sm font-bold uppercase tracking-[0.4em] text-background transition-colors duration-200 hover:border-background hover:bg-background/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-background focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
-        >
-          Belépés
-        </button>
+    <main className={s.wrap}>
+      <div className={s.card}>
+        <h1 className={s.title}>Sirály Regatta</h1>
+        <p className={s.sub}>Hamarosan új formában a Balatonon. Iratkozz fel, és szólunk, amikor indul.</p>
+        {state === 'ok' ? (
+          <p className={s.msg + ' ' + s.ok} role="status">Köszönjük! Szólunk, amikor indul.</p>
+        ) : (
+          <form className={s.form} onSubmit={submit} noValidate>
+            <label htmlFor="email" className={s.hp}>E-mail cím</label>
+            <input id="email" className={s.input} type="email" inputMode="email" autoComplete="email"
+              placeholder="E-mail címed" value={email} onChange={e => { setEmail(e.target.value); if (state === 'err') setState('idle') }}
+              required aria-invalid={state === 'err'} />
+            <input className={s.hp} tabIndex={-1} autoComplete="off" aria-hidden="true" value={hp} onChange={e => setHp(e.target.value)} />
+            <button className={s.btn} type="submit" disabled={state === 'sending'}>
+              {state === 'sending' ? 'Küldés…' : 'Feliratkozom'}
+            </button>
+          </form>
+        )}
+        {state === 'err' && <p className={s.msg + ' ' + s.err} role="alert">Nem sikerült. Ellenőrizd az e-mail címet, és próbáld újra.</p>}
+        <p className={s.note}>A címedet csak az indulásról szóló értesítéshez használjuk.</p>
       </div>
     </main>
   )

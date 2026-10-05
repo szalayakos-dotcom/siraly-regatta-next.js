@@ -1,0 +1,24 @@
+.wrap{position:fixed;inset:0;background:#1a0f06 url('/siraly-hamarosan.webp') center 40%/cover no-repeat;
+  display:flex;align-items:flex-end;justify-content:center;font-family:'Source Sans 3',system-ui,sans-serif;color:#fff8ec}
+.wrap::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(20,10,2,0) 35%,rgba(20,10,2,.55) 70%,rgba(12,6,1,.85) 100%)}
+.card{position:relative;z-index:1;width:min(560px,92vw);margin:0 0 max(6vh,24px);text-align:center}
+.title{font:700 clamp(40px,8vw,76px)/1 'Cormorant Garamond',Georgia,serif;margin:0;letter-spacing:.5px;
+  text-shadow:0 2px 18px rgba(0,0,0,.45)}
+.sub{font-size:clamp(16px,2.4vw,19px);line-height:1.45;margin:12px auto 22px;max-width:44ch;color:#ffe9c9}
+.form{display:flex;gap:8px;background:rgba(255,248,236,.14);border:1px solid rgba(255,233,201,.45);
+  border-radius:999px;padding:6px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.input{flex:1;min-width:0;border:0;background:transparent;color:#fff8ec;font:inherit;font-size:17px;padding:10px 16px;outline:none}
+.input::placeholder{color:rgba(255,240,215,.75)}
+.btn{border:0;border-radius:999px;background:#ffd28a;color:#3a1c02;font:600 16px 'Source Sans 3',system-ui,sans-serif;
+  padding:10px 22px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#ffe0a8}
+.btn:disabled{opacity:.6;cursor:default}
+.form:focus-within{border-color:#ffd28a}
+.btn:focus-visible{outline:3px solid #fff8ec;outline-offset:2px}
+.msg{min-height:1.5em;margin:12px 0 0;font-size:16px}
+.ok{color:#d7ffd9}
+.err{color:#ffc7b8}
+.note{font-size:13px;color:rgba(255,233,201,.8);margin:6px 0 0}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+@media (max-width:480px){.form{flex-direction:column;border-radius:18px}.btn{padding:12px}}
